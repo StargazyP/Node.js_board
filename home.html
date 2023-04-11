@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        body {
+          background-color: seashell;
+          transition: background-color 0.5s ease;
+        }
+        h4 {
+            font-size: medium;
+        }
+        </style>
+</head>
+<body>
+    <h4>home.tml</h4>
+    <button onclick="location.href='/write'">file</button>
+    <script>
+        window.addEventListener('scroll', function() {
+          const body = document.querySelector('body');
+          if (window.scrollY > 0) {
+            body.classList.add('scroll');
+          } else {
+            body.classList.remove('scroll');
+          }
+        });
+      </script>
+</body>
+</html>
