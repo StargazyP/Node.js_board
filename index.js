@@ -36,3 +36,12 @@ app.get('/write', function(req,res){
 app.get('/list', function(req,res){
     res.sendFile(__dirname + '/list.html');
 })
+
+app.post('/add', function(req,res){
+    req.send('전송완료');
+    console.log(req.body.date);
+    console.log(req.body.title);
+    db.collection('post').insertOne({ 제목 : req.body.date, 날짜 : req.body.title }, function(req,res){
+        console.log('저장완료');
+    });
+});
