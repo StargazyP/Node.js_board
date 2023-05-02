@@ -30,8 +30,14 @@ app.get('/write', function(req,res){
     res.sendFile(__dirname + '/write.html')
 })
 
-app.get('/list', function(req,res){
-    res.render('list.ejs')
+app.get('/list', function(요청,응답){
+    //디비에 저장된 post 라는 collection 의 데어터들을 모두 꺼냄.
+    db.collection('post').find().toArray(function (에러,결과){
+       
+        console.log(결과);
+        응답.render('list.ejs', { posts : 결과 });
+    });
+    
 })
 
 app.post('/add', function(req,res){
@@ -39,7 +45,7 @@ app.post('/add', function(req,res){
         console.log('DB 연결 오류');
         return;
     }
-    db.collection('post').insertOne({ 제목 : req.body.title, 날짜 : req.body.date }, function(){
+    db.collection('post').insetOne({ 제목 : req.body.title, 내용 : req.body.date }, function(){
         console.log('저장완료');
     });
     res.send('전송완료');
@@ -47,4 +53,4 @@ app.post('/add', function(req,res){
 
 app.listen(8080, function() {
     console.log('server open');
-})
+});
