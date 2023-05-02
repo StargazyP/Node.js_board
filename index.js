@@ -31,7 +31,7 @@ app.get('/write', function(req,res){
 })
 
 app.get('/list', function(req,res){
-    res.sendFile(__dirname + '/list.html');
+    res.render('list.ejs')
 })
 
 app.post('/add', function(req,res){
