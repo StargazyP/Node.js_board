@@ -10,6 +10,7 @@ app.set('view engine', 'ejs');
 
 app.use(express.urlencoded({ extended: true }));
 
+//mongOdb연동 
 var db;
 MongoClient.connect('mongodb+srv://jdajsl0415:blackser7789@cluster0.wxlph6a.mongodb.net/?retryWrites=true&w=majority', { useUnifiedTopology: true }, function(err, client) {
     if (err) console.log(err);
@@ -39,7 +40,7 @@ app.get('/list', function(요청,응답){
     });
     
 })
-
+// DB에 입력한 데이터를 전송하는 POST
 app.post('/add', function(req,res){
     res.send('전송완료');
     if (!db) {
@@ -57,7 +58,6 @@ app.post('/add', function(req,res){
         })
         
         console.log('저장완료');
-
     });
     });
 });
