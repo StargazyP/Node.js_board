@@ -46,9 +46,9 @@
   </nav>
     <button onclick="location.href='/write'">write</button>
     <button onclick="location.href='/list'">list</button>
-   <% for(var i = 0; i < 5; i++){ %>
+   <% for(var i = 0; i < 7; i++){ %>
     <h4>할일 제목 : <%= posts[i].제목 %></h4>
-    <p>할일 <%= posts[i].날짜 %></p>
+    <p>날짜 <%= posts[i].날짜 %></p>
    <% } %>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ENjdO4Dr2bkBIFxQpeoTz1HIcje39Wm4jDKdf19U8gI4ddQ3GYNS7NTKfAdVQSZe" crossorigin="anonymous"></script>
   </body>
