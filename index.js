@@ -9,6 +9,9 @@ const MongoClient = require('mongodb').MongoClient;
 app.set('view engine', 'ejs');
 
 app.use(express.urlencoded({ extended: true }));
+
+app.use('/public', express.static('public'))
+
 //mongodb
 var db;
 MongoClient.connect('mongodb+srv://jdajsl0415:blackser7789@cluster0.wxlph6a.mongodb.net/?retryWrites=true&w=majority', { useUnifiedTopology: true }, function(err, client) {
@@ -37,7 +40,14 @@ app.get('/list', function(요청,응답){
         console.log(결과);
         응답.render('list.ejs', { posts : 결과 });
     });
-    
+app.get('/detail/:id', function(요청,응답){
+    db.collection('post').findOne({_id : parseInt(요청.params.id) }, function(에러,결과){
+        응답.render('detail.ejs', {data : 결과})
+    })
+});
+
+
+
 })
 // DB에 입력한 데이터를 전송하는 POST
 app.post('/add', function(req,res){

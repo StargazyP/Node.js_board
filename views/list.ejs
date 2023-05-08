@@ -8,54 +8,21 @@
   </head>
 </head>
 <body>
-  <nav class="navbar navbar-expand-lg bg-body-tertiary">
-    <div class="container-fluid">
-      <a class="navbar-brand" href="#">Home</a>
-      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
-        <span class="navbar-toggler-icon"></span>
-      </button>
-      <div class="collapse navbar-collapse" id="navbarSupportedContent">
-        <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-          <li class="nav-item">
-            <a class="nav-link active" aria-current="page" href="#">write</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="#">Link</a>
-          </li>
-          <li class="nav-item dropdown">
-            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-              Dropdown
-            </a>
-            <ul class="dropdown-menu">
-              <li><a class="dropdown-item" href="#">write</a></li>
-              <li><a class="dropdown-item" href="#">Another action</a></li>
-              <li><hr class="dropdown-divider"></li>
-              <li><a class="dropdown-item" href="#">Something else here</a></li>
-            </ul>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link disabled">Disabled</a>
-          </li>
-        </ul>
-        <form class="d-flex" role="search">
-          <input class="form-control me-2" type="search" placeholder="Search" aria-label="Search">
-          <button class="btn btn-outline-success" type="submit">Search</button>
-        </form>
-      </div>
-    </div>
-  </nav>
-    <button onclick="location.href='/write'">write</button>
-    <button onclick="location.href='/list'">list</button>
+  <%- include('nav.html') %>
+    <!-- <button onclick="location.href='/write'">write</button>
+    <button onclick="location.href='/list'">list</button> -->
+  <div class="container">
     <ul class="list-group">
       <% for (var i = 0; i < posts.length; i++){ %>
       <li class="list-group-item">
-        <h4> 할일 제목 : <%= posts[i].제목 %> </h4>
-        <p> 할일 마감날짜 : <%= posts[i].날짜 %> </p>
-        <button class="delete" data-id="<%= posts[i]._id %>">삭제</button>
+        <h4>글 id : <%= posts[i]._id %> </h4>
+        <h4> 제목 : <%= posts[i].제목 %> </h4>
+        <p> 날짜 : <%= posts[i].내용 %> </p>
+        <button class="btn btn-danger delete" data-id="<%= posts[i]._id %>">삭제</button>
       </li>
       <% } %>
     </ul>
-
+  </div>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
     <script>
