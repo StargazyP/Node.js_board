@@ -9,8 +9,7 @@ const MongoClient = require('mongodb').MongoClient;
 app.set('view engine', 'ejs');
 
 app.use(express.urlencoded({ extended: true }));
-
-//mongOdb연동 
+//mongodb
 var db;
 MongoClient.connect('mongodb+srv://jdajsl0415:blackser7789@cluster0.wxlph6a.mongodb.net/?retryWrites=true&w=majority', { useUnifiedTopology: true }, function(err, client) {
     if (err) console.log(err);
@@ -61,6 +60,16 @@ app.post('/add', function(req,res){
     });
     });
 });
+
+app.delete('/delete', function(요청, 응답){
+    console.log(요청.body);
+    요청.body._id = parseInt(요청.body._id);
+    //요청.body에 담겨온 게시물번호를 가진 글을 db에서 찾아서 삭제
+    db.collection('post').deleteOne(요청.body, function(에러, 결과){
+      console.log('삭제완료');
+    });
+    응답.send('삭제완료');
+  });
 
 app.listen(8080, function() {
     console.log('server open');
