@@ -27,6 +27,10 @@ app.use(bodyParser.urlencoded({ extended: true }));
 // allow us to get the data in request.body
 app.use(express.json({ extended: false })); 
 
+app.get('/edit', function(요청,응답){
+    응답.render('edit.ejs')
+})
+
 app.get('/signup', function(요청,응답){
     응답.render('signup.ejs');
 })
