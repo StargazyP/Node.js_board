@@ -58,7 +58,7 @@ app.post('/signup', async function (req, res) {
   
     try {
       // 아이디 중복 체크
-      const user = await db.collection('users').findOne({ id: id });
+      const user = await db.collection('login').findOne({ id: id });
       if (user) {
         return res.send('이미 사용 중인 아이디입니다.');
       }
@@ -88,7 +88,7 @@ app.post('/signup', async function (req, res) {
     session: true,
     passReqToCallback: false,
   }, function (입력한아이디, 입력한비번, done) {
-    db.collection('users').findOne({ id: 입력한아이디 }, async function (err, user) {
+    db.collection('login').findOne({ id: 입력한아이디 }, async function (err, user) {
       if (err) {
         return done(err);
       }
@@ -113,7 +113,7 @@ app.post('/signup', async function (req, res) {
   });
   
   passport.deserializeUser(function (아이디, done) {
-    db.collection('users').findOne({ id: 아이디 }, function (err, user) {
+    db.collection('login').findOne({ id: 아이디 }, function (err, user) {
       done(err, user);
     });
   });
