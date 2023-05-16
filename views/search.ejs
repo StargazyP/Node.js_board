@@ -16,15 +16,20 @@
     <button class="input-group-append btn btn-danger" id="search">검색</button>
   </div>
     
+
   <div class="container">
     <ul class="list-group">
-      <% for (var i = 0; i < posts.length; i++){ %>
-      <li class="list-group-item">
-        <h4>글 번호 : <%= posts[i]._id %> </h4>
-        <h4> 제목 : <%= posts[i].제목 %> </h4>
-        <p> 날짜 : <%= posts[i].날짜 %> </p>
-        <button class="btn btn-danger delete" data-id="<%= posts[i]._id %>">삭제</button>
-      </li>
+      <% if (posts && posts.length > 0) { %>
+        <% for (var i = 0; i < posts.length; i++) { %>
+          <li class="list-group-item">
+            <h4>글 번호: <%= posts[i]._id %> </h4>
+            <h4>제목: <%= posts[i].제목 %> </h4>
+            <p>날짜: <%= posts[i].날짜 %> </p>
+            <button class="btn btn-danger delete" data-id="<%= posts[i]._id %>">삭제</button>
+          </li>
+        <% } %>
+      <% } else { %>
+        <li class="list-group-item">검색 결과가 없습니다.</li>
       <% } %>
     </ul>
   </div>
@@ -34,17 +39,7 @@
         var input = $('#search-input').val();
         window.location.replace('/search?value=' + input)
       });
-
-      $('.delete').click(function(e){
-        var number = e.target.dataset.id;
-      $.ajax({
-        method : 'DELETE',
-        url : '/delete',
-        data : {_id : number}
-        }).done((결과) =>{
-       $(e.target).parent('li').fadeOut();
-      });
-    });
+      
     </script>
   </body>
 </body>

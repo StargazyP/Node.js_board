@@ -16,12 +16,22 @@ const session = require('express-session');
 
 const bcrypt = require('bcrypt');
 
+const flash = require('connect-flash');
+
+app.set('view engine', 'ejs');
+
+require('dotenv').config()
+
 app.use(session({
-    secret: '비밀코드',
-    resave: true,
-    saveUninitialized: false
-  }));
-  
+  secret: '비밀코드',
+  resave: true,
+  saveUninitialized: false
+}));
+
+app.use(passport.initialize());
+app.use(passport.session());
+
+app.use(flash());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 // allow us to get the data in request.body
@@ -39,9 +49,25 @@ app.get('/login', function(요청,응답){
     응답.render('login.ejs');
 });
 
-app.get('/mypage', function(요청,응답){
-    console.log(요청.user);
-    응답.render('mypage.ejs', {사용자 : 요청.user});
+app.get('/logout', function (req, res) {
+  req.logout(function (err) {
+    if (err) {
+      console.log(err);
+    }
+    req.session.destroy(); // 세션 삭제
+    res.redirect('/login'); // 로그인 페이지로 리다이렉트 또는 응답을 보낼 수 있습니다.
+  });
+});
+app.get('/mypage', function (req, res) {
+  // 세션에서 사용자 정보 가져오기
+  var user = req.session.user;
+
+  // 사용자 정보가 세션에 저장되어 있는지 확인
+  if (user) {
+    res.render('mypage.ejs', { 사용자: user }); // mypage.ejs 템플릿에 사용자 정보 전달
+  } else {
+    res.redirect('/login'); // 사용자 정보가 없으면 로그인 페이지로 리다이렉트
+  }
 });
 
 app.get('/fail', function (요청, 응답) {
@@ -55,7 +81,41 @@ function 로그인(요청, 응답, next) {
         응답.send('로그인 안했음');
     }
 }
+passport.use(new LocalStrategy({
+  usernameField: 'id',
+  passwordField: 'pw',
+  session: true,
+  passReqToCallback: false,
+}, function (입력한아이디, 입력한비번, done) {
+  db.collection('login').findOne({ id: 입력한아이디 }, async function (err, user) {
+    if (err) {
+      return done(err);
+    }
+    if (!user) {
+      return done(null, false, { message: '존재하지 않는 아이디입니다.' });
+    }
+    try {
+      const match = await bcrypt.compare(입력한비번, user.pw);
+      if (match) {
+        return done(null, user);
+      } else {
+        return done(null, false, { message: '비밀번호가 일치하지 않습니다.' });
+      }
+    } catch (error) {
+      return done(error);
+    }
+  });
+}));
 
+passport.serializeUser(function (user, done) {
+  done(null, user.id);
+});
+
+passport.deserializeUser(function (아이디, done) {
+  db.collection('login').findOne({ id: 아이디 }, function (err, user) {
+    done(err, user);
+  });
+});
 app.post('/signup', async function (req, res) {
     const id = req.body.id;
     const pw = req.body.pw;
@@ -83,54 +143,18 @@ app.post('/signup', async function (req, res) {
     failureRedirect: '/fail'
   }), function (req, res) {
     req.session.user = req.user; // 세션에 사용자 정보 저장
-    res.redirect('/');
-  });
-
-  passport.use(new LocalStrategy({
-    usernameField: 'id',
-    passwordField: 'pw',
-    session: true,
-    passReqToCallback: false,
-  }, function (입력한아이디, 입력한비번, done) {
-    db.collection('login').findOne({ id: 입력한아이디 }, async function (err, user) {
-      if (err) {
-        return done(err);
-      }
-      if (!user) {
-        return done(null, false, { message: '존재하지 않는 아이디입니다.' });
-      }
-      try {
-        const match = await bcrypt.compare(입력한비번, user.pw);
-        if (match) {
-          return done(null, user);
-        } else {
-          return done(null, false, { message: '비밀번호가 일치하지 않습니다.' });
-        }
-      } catch (error) {
-        return done(error);
-      }
-    });
-  }));
-
-  passport.serializeUser(function (user, done) {
-    done(null, user.id);
+    console.log('세션에 사용자 정보 저장 완료:', req.session.user);
+    res.redirect('/'); // 메인 페이지로 리다이렉트 또는 응답을 보낼 수 있습니다.
   });
   
-  passport.deserializeUser(function (아이디, done) {
-    db.collection('login').findOne({ id: 아이디 }, function (err, user) {
-      done(err, user);
-    });
+  app.post('/register', function(요청,응답){
+    db.collection('login').insertOne({id : 요청.body.id, pw : 요청.body.pw}, function(에러,결과){
+      응답.render('/')
+    })
   });
 
-app.set('view engine', 'ejs');
-
-app.use(express.urlencoded({ extended: true }));
-
-app.use('/public', express.static('public'))
-
-//mongodb
 var db;
-MongoClient.connect('mongodb+srv://jdajsl0415:blackser7789@cluster0.wxlph6a.mongodb.net/?retryWrites=true&w=majority', { useUnifiedTopology: true }, function(err, client) {
+MongoClient.connect(process.env.DB_URL, { useUnifiedTopology: true }, function(err, client) {
     if (err) console.log(err);
     else {
         db = client.db('server');
@@ -143,11 +167,37 @@ app.get('/', function(req,res){
     res.sendFile(__dirname + '/home.html')
 })
 
+app.get('/search', (요청, 응답)=>{
 
-
-app.get('/write', function(req,res){
-    res.sendFile(__dirname + '/write.html')
+  var 검색조건 = [
+    {
+      $search: {
+        index: 'titleSearch',
+        text: {
+          query: 요청.query.value,
+          path: ['제목','날짜']  // 제목날짜 둘다 찾고 싶으면 ['제목', '날짜']
+        }
+      }
+    },
+    {$sort : { _id : 1} },
+    {$limit : 10},
+    {$project : { 제목 : 1, _id:0}}
+  ] 
+  console.log(요청.query);
+  db.collection('post').aggregate(검색조건).toArray((에러, 결과)=>{
+    console.log(결과)
+    응답.render('search.ejs', {posts : 결과})
+  })
 })
+
+app.get('/write', function(req, res) {
+  if (!req.user) {
+    console.log('로그인되지 않았습니다.');
+    req.flash('error', '로그인이 필요합니다.'); // 클라이언트에게 전달할 에러 메시지 설정
+    return res.redirect('/login'); // 로그인 페이지로 리다이렉트
+  }
+  res.sendFile(__dirname + '/write.html');
+});
 
 app.get('/list', function(요청,응답){
     //디비에 저장된 post 라는 collection 의 데어터들을 모두 꺼냄.
@@ -164,25 +214,39 @@ app.get('/detail/:id', function(요청,응답){
 
 // DB에 입력한 데이터를 전송하는 POST
 app.post('/add', function (req, res) {
-    if (!db) {
-        console.log('DB 연결 오류');
-        return;
-    }
-    db.collection('counter').findOne({ name: '게시물갯수' }, function (에러, 결과) {
-        console.log(결과.toTalPost);
-        var 총게시물갯수 = 결과.toTalPost;
+  if (!db) {
+    console.log('DB 연결 오류');
+    return;
+  }
 
-        db.collection('post').insertOne({ _id: 총게시물갯수 + 1, 제목: req.body.title, 내용: req.body.date }, function (에러, 결과) {
-            db.collection('counter').updateOne({ name: '게시물갯수' }, { $inc: { toTalPost: 1 } }, function (에러, 결과) {
-                if (에러) {
-                    return console.log('에러');
-                }
-                res.send('전송완료');
-            })
+  // 로그인된 사용자인지 확인
+  if (!req.user) {
+    console.log('로그인되지 않았습니다.');
+    return res.redirect('/login'); // 로그인 페이지로 리다이렉트
+  }
 
-            console.log('저장완료');
-        });
+  db.collection('counter').findOne({ name: '게시물갯수' }, function (에러, 결과) {
+    console.log(결과.toTalPost);
+    var 총게시물갯수 = 결과.toTalPost;
+
+    var 저장할거 = {
+      _id: 총게시물갯수 + 1,
+      작성자: req.user._id,
+      제목: req.body.title,
+      날짜: req.body.date
+    };
+
+    db.collection('post').insertOne(저장할거, function (에러, 결과) {
+      db.collection('counter').updateOne({ name: '게시물갯수' }, { $inc: { toTalPost: 1 } }, function (에러, 결과) {
+        if (에러) {
+          console.log('에러');
+          return res.send('에러 발생'); // 에러 처리를 진행하세요.
+        }
+        console.log('저장완료');
+        res.redirect('/');
+      });
     });
+  });
 });
 
 app.delete('/delete', function(요청, 응답){
@@ -195,6 +259,6 @@ app.delete('/delete', function(요청, 응답){
     응답.send('삭제완료');
   });
 
-app.listen(8080, function() {
+app.listen(process.env.PORT, function() {
     console.log('server open');
 });
