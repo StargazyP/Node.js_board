@@ -18,6 +18,10 @@ const bcrypt = require('bcrypt');
 
 const flash = require('connect-flash');
 
+const nodemailer = require('nodemailer');
+
+app.use(express.urlencoded({ extended: true }));
+
 app.set('view engine', 'ejs');
 
 require('dotenv').config()
@@ -55,7 +59,7 @@ app.get('/logout', function (req, res) {
       console.log(err);
     }
     req.session.destroy(); // 세션 삭제
-    res.redirect('/login'); // 로그인 페이지로 리다이렉트 또는 응답을 보낼 수 있습니다.
+    res.redirect('/'); // 로그인 페이지로 리다이렉트 또는 응답을 보낼 수 있습니다.
   });
 });
 app.get('/mypage', function (req, res) {
@@ -119,6 +123,7 @@ passport.deserializeUser(function (아이디, done) {
 app.post('/signup', async function (req, res) {
     const id = req.body.id;
     const pw = req.body.pw;
+    const em = req.body.em;
   
     try {
       // 아이디 중복 체크
@@ -131,7 +136,7 @@ app.post('/signup', async function (req, res) {
       const hashedPassword = await bcrypt.hash(pw, 10);
   
       // 사용자 정보 저장
-      await db.collection('login').insertOne({ id: id, pw: hashedPassword });
+      await db.collection('login').insertOne({ id: id, pw: hashedPassword, em: em});
       res.redirect('/login');
     } catch (error) {
       console.log(error);
@@ -166,7 +171,79 @@ MongoClient.connect(process.env.DB_URL, { useUnifiedTopology: true }, function(e
 app.get('/', function(req,res){
     res.sendFile(__dirname + '/home.html')
 })
+app.get('/findid', function(req,res){
+  res.render('findid.ejs');
+})
+app.post('/findid', function (req, res) {
+  const email = req.body.email; // 폼에서 전송된 이메일 값을 가져옵니다.
 
+  db.collection('login').findOne({ em: email }, function (err, result) {
+    if (err) {
+      console.error('ID 검색 중 오류 발생:', err);
+      res.status(500).send('서버 오류');
+    } else {
+      if (result && result.em) {
+        res.send(`아이디는 : ${result.id} 입니다.`);
+      } else {
+        res.send('검색 결과가 없습니다.');
+      }
+    }
+  });
+});
+
+app.get('/reset-password', function(req,res){
+  res.render('reset-password.ejs');
+})
+app.post('/reset-password', function(req,res){
+  const email = req.body.email; // 폼에서 전송된 이메일 값을 가져옵니다.
+  // 암호 변경 페이지 URL을 생성합니다.
+  const resetPasswordUrl = `http://example.com/reset-password?email=${encodeURIComponent(email)}`;
+
+  // 이메일 전송을 위한 transporter를 설정합니다.
+  const transporter = nodemailer.createTransport({
+    service: 'Gmail',
+    auth: {
+      user: 'jangdong041512@gmail.com',
+      pass: 'fwnptpwoambbyklj'
+    }
+  });
+
+  // 이메일 옵션을 설정합니다.
+  const mailOptions = {
+    from: 'your-email@gmail.com',
+    to: email,
+    subject: '암호 변경',
+    text: `다음 링크를 통해 암호를 변경하세요: ${resetPasswordUrl}`
+  };
+
+  // 이메일을 전송합니다.
+  transporter.sendMail(mailOptions, function (error, info) {
+    if (error) {
+      console.error('이메일 전송 중 오류 발생:', error);
+      res.status(500).send('서버 오류');
+    } else {
+      console.log('이메일이 성공적으로 전송되었습니다.');
+      res.send('이메일이 전송되었습니다.');
+    }
+  });
+});
+
+
+// app.post('/findpw',function(req,res){
+//   const em = req.body.email;
+//   db.collection('login').findOne({id : id, em : em}, function(err,result){
+//     if (err) {
+//       console.error('오류 발생:', err);
+//       res.status(500).send('서버 오류');
+//     }else {
+//       if(result.id && result.em){
+//         res.send(`아이디는 : ${result.id} 이고 이메일은 ${result.em} 입니다.`)
+//       }else{
+//         res.send('검색결과없음');
+//       }
+//     }
+//   })
+// })
 app.get('/search', (요청, 응답)=>{
 
   var 검색조건 = [
@@ -200,6 +277,11 @@ app.get('/write', function(req, res) {
 });
 
 app.get('/list', function(요청,응답){
+  if (!요청.user) {
+    console.log('로그인되지 않았습니다.');
+    요청.flash('error', '로그인이 필요합니다.'); // 클라이언트에게 전달할 에러 메시지 설정
+    return 응답.redirect('/login'); // 로그인 페이지로 리다이렉트
+  }
     //디비에 저장된 post 라는 collection 의 데어터들을 모두 꺼냄.
     db.collection('post').find().toArray(function (에러,결과){
         console.log(결과);

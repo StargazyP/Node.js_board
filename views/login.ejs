@@ -19,22 +19,17 @@
            <label>비번</label> 
            <input type="text" class="form-control" name="pw"> 
          </div> 
-         <button type="submit" class="btn btn-danger">로그인</button> 
+         <button type="submit" class="btn btn-danger">로그인</button>
        </form> 
+       <br>
+       <form>
+        <button type="button" class="btn btn-danger" onclick="location.href='/findid'">아이디 찾기</button>
+        <button type="button" class="btn btn-danger" onclick="location.href='/reset-password'">비밀번호 찾기</button>
+       </form>
+    
      </div> 
-     <div class="container mt-4"> 
-      <form action="/login" method="POST"> 
-        <div class="form-group"> 
-          <label>아이디</label> 
-          <input type="text" class="form-control" name="id"> 
-        </div> 
-        <div class="form-group"> 
-          <label>비번</label> 
-          <input type="text" class="form-control" name="pw"> 
-        </div> 
-        <button type="submit" class="btn btn-danger">가입</button> 
-      </form> 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    
   </body>
 </body>
 </html>
