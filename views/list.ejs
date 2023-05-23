@@ -24,12 +24,19 @@
         <h4> 제목 : <%= posts[i].제목 %> </h4>
         <p> 날짜 : <%= posts[i].날짜 %> </p>
         <button class="btn btn-danger delete" data-id="<%= posts[i]._id %>">삭제</button>
+        <button class="btn btn-secondary chat" data-id="<%= posts[i].작성자%>">채팅</button>
       </li>
       <% } %>
     </ul>
   </div>
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
+      $('.chat').click(function(e){
+        var _id = e.target.dataset.id;
+        $.post('/chatroom', {당한사람id : _id}).then(()=>{
+          console.log('채팅방 게시물 생성 완료')
+        })
+      });
       $('#search').click(function(){
         var input = $('#search-input').val();
         window.location.replace('/search?value=' + input)

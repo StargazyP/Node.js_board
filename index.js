@@ -2,6 +2,10 @@ const express = require('express');
 
 const app = express();
 
+const http = require('http').createServer(app);
+const { Server } = require("socket.io");
+const io = new Server(http);
+
 const bodyParser = require('body-parser');
 
 const MongoClient = require('mongodb').MongoClient;
@@ -78,11 +82,11 @@ app.get('/fail', function (요청, 응답) {
     응답.send('인증에 실패했습니다.');
 });
 
-function 로그인(요청, 응답, next) {
-    if (요청.user) {
+function 로그인(req, res, next) {
+    if (req.user) {
         next();
     } else {
-        응답.send('로그인 안했음');
+        res.send('로그인 안했음');
     }
 }
 passport.use(new LocalStrategy({
@@ -166,8 +170,60 @@ MongoClient.connect(process.env.DB_URL, { useUnifiedTopology: true }, function(e
         console.log('db open');
     }
 });
+const { ObjectId } = require('mongodb');
+app.post('/chatroom', 로그인, function(req,res){
 
+  var 저장할거임 = {
+    title : '무슨채팅방',
+    member : [req.body.당한사람id, req.user._id],
+    date : new Date()
+  }
+  db.collection('chatroom').insertOne(저장할거임).then(function(result){
+    res.send('저장완료')
+  });
+});
 
+app.get('/chat', 로그인, function(req,res){
+
+  db.collection('chatroom').find({ member : req.user._id }).toArray().then((result)=>{
+    res.render('chat.ejs', { data : result})
+
+  })
+})
+
+app.post('/message', 로그인, function(req,res){
+  var 저장할거야 = {
+    parent : req.body.parent,
+    userid: req.user._id,
+    content : req.body.content,
+    date : new Date(),
+  }
+  db.collection('message').insertOne(저장할거야).then((result)=>{
+    res.send(result);
+  })
+});
+
+app.get('/message/:id',로그인,function(req,res){
+  res.writeHead(200, {
+    "Connection" : "keep-alive",
+    "Content-Type" : "text/event-stream",
+    "Cache-Control" : "no-cache",
+  });
+  db.collection('message').find({ parent : req.params.id}).toArray().then((result)=>{
+  res.write('event: test\n');
+  res.write('data:' + JSON.stringify(result) +'\n\n');
+  })
+  const pipeline = [
+    { $match : {'fullDocument.parent': req.params.id} }
+  ];
+  const collection = db.collection('message');
+  const changeStream = collection.watch(pipeline);
+  changeStream.on('change', (result)=>{
+    res.write('event: test\n');
+    res.write('data: ' + JSON.stringify([result.fullDocument]) + '\n\n');
+
+  });
+});
 app.get('/', function(req,res){
     res.sendFile(__dirname + '/home.html')
 })
@@ -341,6 +397,27 @@ app.delete('/delete', function(요청, 응답){
     응답.send('삭제완료');
   });
 
-app.listen(process.env.PORT, function() {
+http.listen(process.env.PORT, function() {
     console.log('server open');
 });
+
+app.get('/socket', function(req,res){
+  res.render('socket.ejs')
+})
+
+io.on('connection', function(socket){
+  console.log('유저접속함');
+
+  socket.on('room1-send',function(data){
+    io.to('room1').emit('broadcast', data);
+  });
+
+  socket.on('joinroom',function(data){
+    socket.join('room1');
+  });
+
+  socket.on('user-send',function(data){
+    io.emit('broadcast',data);
+  });
+ 
+})
