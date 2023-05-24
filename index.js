@@ -24,11 +24,28 @@ const flash = require('connect-flash');
 
 const nodemailer = require('nodemailer');
 
+const path = require('path');
+
+app.use(express.static(path.join(__dirname, 'public')));
+
 app.use(express.urlencoded({ extended: true }));
 
 app.set('view engine', 'ejs');
 
 require('dotenv').config()
+
+let multer = require('multer');
+
+var storage = multer.diskStorage({
+  destination : function(req, file, cb){
+    cb(null, './public/image')
+  },
+  filename : function(req, file, cb){
+    cb(null, file.originalname )
+  }
+});
+
+var upload = multer({ storage: storage });
 
 app.use(session({
   secret: '비밀코드',
@@ -225,7 +242,7 @@ app.get('/message/:id',로그인,function(req,res){
   });
 });
 app.get('/', function(req,res){
-    res.sendFile(__dirname + '/home.html')
+    res.render('index.ejs')
 })
 app.get('/findid', function(req,res){
   res.render('findid.ejs');
@@ -246,14 +263,16 @@ app.post('/findid', function (req, res) {
     }
   });
 });
-
-app.get('/reset-password', function(req,res){
+app.get('/reset-password', function(req, res) {
   res.render('reset-password.ejs');
-})
-app.post('/reset-password', function(req,res){
+});
+
+app.post('/reset-password', function(req, res) {
   const email = req.body.email; // 폼에서 전송된 이메일 값을 가져옵니다.
+
   // 암호 변경 페이지 URL을 생성합니다.
-  const resetPasswordUrl = `http://example.com/reset-password?email=${encodeURIComponent(email)}`;
+  const resetPasswordUrl = `http://localhost/reset-password-new/?email=${encodeURIComponent(email)}`;
+
 
   // 이메일 전송을 위한 transporter를 설정합니다.
   const transporter = nodemailer.createTransport({
@@ -273,7 +292,7 @@ app.post('/reset-password', function(req,res){
   };
 
   // 이메일을 전송합니다.
-  transporter.sendMail(mailOptions, function (error, info) {
+  transporter.sendMail(mailOptions, function(error, info) {
     if (error) {
       console.error('이메일 전송 중 오류 발생:', error);
       res.status(500).send('서버 오류');
@@ -284,22 +303,37 @@ app.post('/reset-password', function(req,res){
   });
 });
 
+app.get('/reset-password-new', function (req, res) {
+  const email = req.query.email; // URL에서 이메일 값을 가져옵니다.
+  res.render('reset-password-new.ejs', { email: email }); // reset-password-new.ejs 템플릿을 렌더링합니다.
+});
 
-// app.post('/findpw',function(req,res){
-//   const em = req.body.email;
-//   db.collection('login').findOne({id : id, em : em}, function(err,result){
-//     if (err) {
-//       console.error('오류 발생:', err);
-//       res.status(500).send('서버 오류');
-//     }else {
-//       if(result.id && result.em){
-//         res.send(`아이디는 : ${result.id} 이고 이메일은 ${result.em} 입니다.`)
-//       }else{
-//         res.send('검색결과없음');
-//       }
-//     }
-//   })
-// })
+app.post('/reset-password-new', function (req, res) {
+  const email = req.body.email; // 폼에서 전송된 이메일 값
+  const newPassword = req.body.newPassword; // 폼에서 전송된 새로운 비밀번호 값
+
+  // 데이터베이스에서 사용자를 찾아서 비밀번호를 업데이트
+  const collection = db.collection('login'); // 사용자 정보를 저장한 컬렉션 이름
+
+  const hashedPassword = bcrypt.hashSync(newPassword, 10);
+
+  // 사용자를 찾아서 비밀번호를 업데이트합니다.
+  collection.updateOne({ em: email }, { $set: { pw: hashedPassword } }, function (err, result) {
+    if (err) {
+      console.error('암호 변경 중 오류 발생:', err);
+      res.status(500).send('서버 오류');
+    } else {
+      if (result.matchedCount > 0) {
+        console.log('암호가 성공적으로 변경되었습니다.');
+        res.send('암호가 성공적으로 변경되었습니다.');
+      } else {
+        console.log('사용자를 찾을 수 없습니다.');
+        res.status(404).send('사용자를 찾을 수 없습니다.');
+      }
+    }
+  });
+});
+
 app.get('/search', (요청, 응답)=>{
 
   var 검색조건 = [
@@ -371,7 +405,7 @@ app.post('/add', function (req, res) {
       _id: 총게시물갯수 + 1,
       작성자: req.user._id,
       제목: req.body.title,
-      날짜: req.body.date
+      내용: req.body.content
     };
 
     db.collection('post').insertOne(저장할거, function (에러, 결과) {
@@ -421,3 +455,11 @@ io.on('connection', function(socket){
   });
  
 })
+
+app.get('/upload', function(re,res){
+  res.render('upload.ejs');
+})
+
+app.post('/upload', upload.array('uploading', 10), function(req, res){
+  res.redirect('/');
+});

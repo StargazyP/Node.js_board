@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>게시물 작성</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        input[type="text"],
+        textarea {
+            width: 100%;
+            padding: 10px;
+            font-size: 16px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+
+        textarea {
+            height: 200px;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #4CAF50;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <h1>게시물 작성</h1>
+
+    <form id="postForm">
+        <div class="form-group">
+            <label for="title">제목</label>
+            <input type="text" id="title" name="title" required>
+        </div>
+
+        <div class="form-group">
+            <label for="content">내용</label>
+            <textarea id="content" name="content" required></textarea>
+        </div>
+
+        <button type="submit">작성 완료</button>
+    </form>
+
+    <script>
+        document.getElementById('postForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+
+            var title = document.getElementById('title').value;
+            var content = document.getElementById('content').value;
+
+            // 여기에서 게시물 작성에 필요한 로직을 추가하면 됩니다.
+            // 예를 들어, AJAX 요청을 사용하여 서버로 게시물 데이터를 전송하거나,
+            // 다른 작업을 수행할 수 있습니다.
+
+            // 이 예제에서는 콘솔에 게시물 데이터를 출력하는 것으로 대체합니다.
+            console.log('제목:', title);
+            console.log('내용:', content);
+
+            // 게시물 작성 완료 후 필요한 동작을 수행할 수 있습니다.
+            // 예를 들어, 페이지 이동 등을 처리할 수 있습니다.
+        });
+    </script>
+</body>
+</html>
