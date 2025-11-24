@@ -1,29 +1,181 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ko">
+
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Bootstrap demo</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-KK94CHFLLe+nY2dmCWGMq91rCGa5gtU4mk92HdvYe+M/SXH301p5ILy+dN9+nJOZ" crossorigin="anonymous">
-  </head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>
+    <%= post.제목 %> - 게시물 상세보기
+  </title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <style>
+    body {
+      background: #f5f6f8;
+      font-family: 'Noto Sans KR', sans-serif;
+      color: #111;
+    }
+
+    .detail-container {
+      max-width: 800px;
+      margin: 100px auto 3px auto;
+      /* 🔥 아래쪽 margin 3px */
+      background: #fff;
+      border-radius: 20px;
+      padding: 30px;
+      border: 1px solid #f0f0f0;
+    }
+
+    .comment-section {
+      max-width: 800px;
+      margin: 5px auto 100px auto;
+      /* 🔥 위쪽 margin 3px */
+      background: #fff;
+      border-radius: 16px;
+      padding: 25px;
+      border: 1px solid #eaeaea;
+    }
+
+    .detail-title {
+      font-size: 28px;
+      font-weight: 600;
+      margin-bottom: 10px;
+    }
+
+    .detail-meta {
+      color: #777;
+      font-size: 15px;
+      margin-bottom: 20px;
+    }
+
+    .detail-content {
+      font-size: 17px;
+      line-height: 1.6;
+      white-space: pre-line;
+    }
+
+    .btn-modern {
+      background: #f1f3f5;
+      border: none;
+      border-radius: 12px;
+      padding: 8px 16px;
+      font-weight: 500;
+      color: #111;
+      transition: background 0.2s ease-in-out;
+    }
+
+    .btn-modern:hover {
+      background: #e9ecef;
+      color: #111;
+    }
+  </style>
 </head>
+
 <body>
 
-    <%- include('nav.html') %>
+  <!-- 📌 게시글 컨테이너 -->
+  <div class="detail-container">
+    <div class="detail-title">
+      <%= post.제목 %>
+    </div>
 
-    <button onclick="location.href='/write'">write</button>
-    <button onclick="location.href='/list'">list</button>
-    <div class="container mt-3">
-        <div class="card" style="width: 100%">
-          <div class="card-body">
-            <h5 class="card-title"><%= data.제목 %></h5>
-            <h6 class="card-subtitle mb-2 text-muted"><%= data.날짜 %></h6>
-            <p class="card-text">임시내용입니다.</p>
-            <a href="#" class="card-link">수정하기</a>
-          </div>
-        </div>
+    <div class="detail-meta">
+      작성자: <%= post.작성자 %> ・ 날짜: <%= post.날짜 %>
+    </div>
+
+    <div class="detail-content">
+      <%= post.내용 %>
+    </div>
+
+    <div class="mt-4 d-flex justify-content-between">
+      <a href="/list" class="btn btn-modern">← 목록으로</a>
+      <div class="text-end mb-3">
+        <button class="btn btn-modern" data-bs-toggle="collapse" data-bs-target="#commentFormArea">
+          댓글 작성
+        </button>
       </div>
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-  </body>
+
+      <% if (user && user.nm===post.작성자) { %>
+        <div>
+          <a href="/edit/<%= post._id %>" class="btn btn-outline-primary btn-sm">수정</a>
+          <form action="/delete" method="POST" class="d-inline">
+            <input type="hidden" name="_id" value="<%= post._id %>">
+            <button type="submit" class="btn btn-outline-danger btn-sm">삭제</button>
+          </form>
+        </div>
+        <% } %>
+    </div>
+
+  </div> <!-- detail-container 끝 -->
+
+  <!-- 📌 댓글 컨테이너 (완전히 분리됨!) -->
+  <div class="comment-section">
+
+    <h5 class="fw-semibold mb-3">댓글</h5>
+
+    <div class="collapse" id="commentFormArea">
+      <form id="commentForm" class="p-3 border rounded-3" style="background:#f8f9fa;">
+        <div class="mb-3">
+          <label class="form-label">내용</label>
+          <textarea class="form-control" id="commentContent" required></textarea>
+        </div>
+        <div class="d-flex justify-content-end">
+          <button type="submit" class="btn btn-modern">등록</button>
+        </div>
+      </form>
+    </div>
+
+    <div id="commentList" class="mt-4">
+      <% if (comments && comments.length> 0) { %>
+        <% comments.forEach(c=> { %>
+
+          <div class="fw-semibold">
+            <%= c.writer %>
+          </div>
+          <div class="text-muted" style="font-size: 13px;">
+            <%= c.date %>
+          </div>
+          <div class="mb-3">
+            <%= c.content %>
+          </div>
+          <hr>
+
+          <% }) %>
+            <% } else { %>
+              <div class="text-muted">아직 댓글이 없습니다.</div>
+              <% } %>
+    </div>
+
+  </div> <!-- comment-section 끝 -->
+
 </body>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  document.getElementById('commentForm').addEventListener('submit', function (event) {
+    event.preventDefault();
+
+    const content = document.getElementById('commentContent').value;
+
+    fetch('/comment/add', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        postId: "<%= post._id %>",
+        content: content
+      })
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          alert('댓글 등록됨');
+          window.location.reload();
+        } else {
+          alert('댓글 등록 실패');
+        }
+      })
+      .catch(err => console.error(err));
+  });
+</script>
+
+
 </html>

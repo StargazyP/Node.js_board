@@ -1,0 +1,88 @@
+/* === modern_board_style.css === */
+body {
+  background: #f5f6f8;
+  font-family: 'Noto Sans KR', 'Inter', sans-serif;
+  color: #000; /* 모든 텍스트 검은색 */
+}
+
+.board-container {
+  max-width: 800px;
+  margin: 40px auto;
+  background: #fff;
+  border-radius: 20px;
+  padding: 24px;
+  border: 1px solid #f0f0f0;
+}
+
+.board-title {
+  font-weight: 600;
+  font-size: 1.3rem;
+  margin-bottom: 24px;
+  color: #000;
+}
+
+.divider {
+  height: 1px;
+  background-color: #e9ecef;
+  margin: 20px 0;
+}
+
+.btn-modern {
+  background: #f1f3f5;
+  border: none;
+  border-radius: 12px;
+  padding: 8px 16px;
+  font-weight: 500;
+  transition: background 0.2s ease-in-out;
+  color: #000;
+}
+.btn-modern:hover {
+  background: #e9ecef;
+}
+
+/* ✅ 테이블 */
+.table {
+  border-collapse: separate;
+  border-spacing: 0 10px;
+  color: #000;
+}
+
+.table thead th {
+  border: none;
+  color: #000;
+  font-weight: 500;
+}
+
+.table tbody tr {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 0 0 1px #f1f3f5;
+  transition: background-color 0.4s ease, 
+              transform 0.2s ease, 
+              box-shadow 0.3s ease;
+}
+
+/* ✅ Hover 시 부드러운 강조 효과 */
+.table tbody tr:hover {
+  background-color: rgba(21, 105, 230, 0.05);
+  transform: scale(1.005);
+  box-shadow: 0 0 0 2px #e0e0e0;
+}
+
+/* ✅ 둥근 모서리 유지 */
+.table td, .table th {
+  border: none;
+  vertical-align: middle;
+  color: #000;
+}
+
+.table td:first-child {
+  border-top-left-radius: 16px;
+  border-bottom-left-radius: 16px;
+}
+
+.table td:last-child {
+  border-top-right-radius: 16px;
+  border-bottom-right-radius: 16px;
+}
+

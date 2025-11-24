@@ -1,140 +1,196 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ko">
 
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
-  <meta name="description" content="" />
-  <meta name="author" content="" />
-  <title>Simple Sidebar - Start Bootstrap Template</title>
-  <!-- Favicon-->
-  <link rel="icon" type="image/x-icon" href="assets/favicon.ico" />
-  <!-- Core theme CSS (includes Bootstrap)-->
-  <link href="css/styles.css" rel="stylesheet" />
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet"
-    integrity="sha384-KK94CHFLLe+nY2dmCWGMq91rCGa5gtU4mk92HdvYe+M/SXH301p5ILy+dN9+nJOZ" crossorigin="anonymous">
-  <style>
-    .chat-content {
-      height: 450px;
-      overflow-y: scroll;
-      padding: 10px;
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>실시간 채팅방</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 
-    .chat-content li {
-      margin-top: 10px;
-      list-style: none;
-    }
+    <style>
+        body {
+            background: #f5f6f8;
+            font-family: 'Noto Sans KR', 'Inter', sans-serif;
+            color: #111;
+        }
 
-    .text-small {
-      font-size: 12px;
-      color: gray;
-      margin-bottom: 0;
-    }
+        /* ✅ 상단 네비게이션 바 */
+        .navbar-custom {
+            background: #ffffff;
+            border-bottom: 1px solid #e5e5e5;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+        }
 
-    .chat-box {
-      background: #eee;
-      padding: 5px;
-      border-radius: 5px;
-      float: left;
-    }
+        .navbar-brand {
+            font-weight: 600;
+            color: #0d6efd;
+        }
 
-    .mine {
-      float: right;
-    }
-  </style>
+        .nav-link {
+            color: #111 !important;
+            font-weight: 500;
+            margin-right: 15px;
+            transition: color 0.2s ease;
+        }
+
+        .nav-link:hover {
+            color: #0d6efd !important;
+        }
+
+        /* ✅ 채팅창 레이아웃 */
+        .chat-container {
+            max-width: 700px;
+            margin: 100px auto 40px;
+            background: #fff;
+            border-radius: 20px;
+            padding: 24px;
+            border: 1px solid #f0f0f0;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+        }
+
+        .chat-content {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            height: 400px;
+            overflow-y: auto;
+            border: 1px solid #f1f3f5;
+            border-radius: 16px;
+            background: #fafafa;
+        }
+
+        .chat-content li {
+            margin: 8px;
+            display: flex;
+        }
+
+        .chat-box {
+            display: inline-block;
+            padding: 10px 14px;
+            border-radius: 12px;
+            background: #f1f3f5;
+            color: #111;
+            max-width: 70%;
+            word-break: break-word;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+
+        .chat-box.mine {
+            background: #0d6efd;
+            color: #fff;
+            margin-left: auto;
+        }
+
+        .chat-input-group {
+            display: flex;
+            margin-top: 15px;
+            gap: 10px;
+        }
+
+        .chat-input-group input {
+            flex: 1;
+            border-radius: 12px;
+            border: 1px solid #ddd;
+            padding: 10px 14px;
+            outline: none;
+        }
+
+        .btn-modern {
+            background: #f1f3f5;
+            border: none;
+            border-radius: 12px;
+            padding: 8px 16px;
+            font-weight: 500;
+            color: #111;
+            transition: background 0.2s ease-in-out;
+        }
+
+        .btn-modern:hover {
+            background: #e9ecef;
+            color: #111;
+        }
+    </style>
 </head>
 
 <body>
-  <div class="d-flex" id="wrapper">
-    <!-- Sidebar-->
-    <div class="border-end bg-white" id="sidebar-wrapper">
-      <div class="sidebar-heading border-bottom bg-light">Home</div>
-      <div class="list-group list-group-flush">
-        <a class="list-group-item list-group-item-action list-group-item-light p-3" href="/">write</a>
-        <a class="list-group-item list-group-item-action list-group-item-light p-3" href="/write">write</a>
-        <a class="list-group-item list-group-item-action list-group-item-light p-3" href="/list">list</a>
-        <a class="list-group-item list-group-item-action list-group-item-light p-3" href="/login">login</a>
-        <a class="list-group-item list-group-item-action list-group-item-light p-3" href="/logout">logout</a>
-        <a class="list-group-item list-group-item-action list-group-item-light p-3" href="/mypage">Mypage</a>
-        <a class="list-group-item list-group-item-action list-group-item-light p-3" href="/socket">Chat</a>
-      </div>
-    </div>
-    <!-- Page content wrapper-->
-    <div id="page-content-wrapper">
-      <!-- Top navigation-->
-      <nav class="navbar navbar-expand-lg navbar-light bg-light border-bottom">
-        <div class="container-fluid">
-          <button class="btn btn-primary" id="sidebarToggle">Toggle Menu</button>
-          <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
-            data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false"
-            aria-label="Toggle navigation"><span class="navbar-toggler-icon"></span></button>
-          <div class="collapse navbar-collapse" id="navbarSupportedContent">
-          </div>
+    <!-- ✅ 상단 네비게이션 -->
+    <nav class="navbar navbar-expand-lg navbar-custom fixed-top">
+        <div class="container">
+            <a class="navbar-brand" href="/">MyBoard</a>
+            <div class="collapse navbar-collapse justify-content-end">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/logout">로그아웃</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/mypage">내 정보</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/list">게시판</a>
+                    </li>
+                </ul>
+            </div>
         </div>
-      </nav>
-      <!-- Page content -->
-        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.6.1/socket.io.js"
-          integrity="sha512-xbQU0+iHqhVt7VIXi6vBJKPh3IQBF5B84sSHdjKiSccyX/1ZI7Vnkt2/8y8uruj63/DVmCxfUNohPNruthTEQA=="
-          crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-        <ul class="list-group chat-content">
-          <!-- <li><span class="chat-box">채팅방1 내용</span></li>
-                <li><span class="chat-box">채팅방1 내용</span></li>
-                <li><span class="chat-box mine">채팅방1 내용</span></li> -->
-        </ul>
-        <input id="input">
-        <div class="chat-room" id="content"></div>
-        <button id="send">보내기</button>
-        <script>
-          var socket = io();
+    </nav>
 
-          $('#send').click(function () {
-            var 채팅내용 = $('#input').val();
-            socket.emit('user-send', 채팅내용);
-            var 보낼거 = {
-              content: 채팅내용
-            };
-            $.post('/socket', 보낼거).then((a) => {
-              console.log(a);
-              appendChatMessage(채팅내용);
-            });
-          });
+    <!-- ✅ 채팅 메인 UI -->
+    <div class="chat-container">
+        <h5 class="mb-3">Chat</h5>
+        <ul class="chat-content"></ul>
 
-          socket.on('broadcast', function (data) {
-            appendChatMessage(data);
-          });
-
-          function appendChatMessage(message) {
-            var chatBoxClass = 'chat-box';
-            if (message === $('#input').val()) {
-              chatBoxClass += ' mine';
-            }
-            $('.chat-content').append('<li><span class="' + chatBoxClass + '">' + message + '</span></li>');
-          }
-        </script>
+        <div class="chat-input-group">
+            <input type="text" id="input" placeholder="메시지를 입력하세요..." />
+            <button id="send" class="btn-modern">전송</button>
+        </div>
     </div>
-  </div>
-  <!-- Bootstrap core JS-->
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
-  <!-- Core theme JS-->
-  <script src="js/scripts.js"></script>
-  <script>
-    window.addEventListener('DOMContentLoaded', event => {
-      // Toggle the side navigation
-      const sidebarToggle = document.body.querySelector('#sidebarToggle');
-      if (sidebarToggle) {
-        // Uncomment Below to persist sidebar toggle between refreshes
-        // if (localStorage.getItem('sb|sidebar-toggle') === 'true') {
-        //     document.body.classList.toggle('sb-sidenav-toggled');
-        // }
-        sidebarToggle.addEventListener('click', event => {
-          event.preventDefault();
-          document.body.classList.toggle('sb-sidenav-toggled');
-          localStorage.setItem('sb|sidebar-toggle', document.body.classList.contains('sb-sidenav-toggled'));
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+
+    <script>
+        const socket = io();
+
+        // ✅ 서버 연결 확인
+        socket.on('connect', function () {
+            console.log('🟢 서버 연결됨');
         });
-      }
-    });
-  </script>
+
+        // ✅ 전송 버튼 클릭 시 메시지 송신
+        $('#send').click(function () {
+            sendMessage();
+        });
+
+        // ✅ Enter 키 눌렀을 때 메시지 전송
+        $('#input').keypress(function (e) {
+            if (e.which === 13 && !e.shiftKey) { // Enter 키 (Shift + Enter는 줄바꿈)
+                e.preventDefault(); // 줄바꿈 방지
+                sendMessage();
+            }
+        });
+
+        // ✅ 서버에서 메시지 수신 시 표시
+        socket.on('broadcast', function (data) {
+            appendChatMessage(data, false);
+        });
+
+        // ✅ 메시지 전송 로직 함수
+        function sendMessage() {
+            const message = $('#input').val().trim();
+            if (message === '') return;
+
+            socket.emit('user-send', message); // 서버로 전송
+            appendChatMessage(message, true);  // 내 메시지 화면에 표시
+            $('#input').val('');               // 입력창 초기화
+        }
+
+        // ✅ 채팅 메시지 화면 표시 함수
+        function appendChatMessage(message, isMine) {
+            const chatBoxClass = isMine ? 'chat-box mine' : 'chat-box';
+            $('.chat-content').append(`<li><span class="${chatBoxClass}">${message}</span></li>`);
+            $('.chat-content').scrollTop($('.chat-content')[0].scrollHeight);
+        }
+    </script>
+
 </body>
 
 </html>

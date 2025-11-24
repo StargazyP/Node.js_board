@@ -1,91 +1,257 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
-    <meta name="description" content="" />
-    <meta name="author" content="" />
-    <title>Simple Sidebar - Start Bootstrap Template</title>
-    <!-- Favicon-->
-    <link rel="icon" type="image/x-icon" href="assets/favicon.ico" />
-    <!-- Bootstrap core CSS-->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-KK94CHFLLe+nY2dmCWGMq91rCGa5gtU4mk92HdvYe+M/SXH301p5ILy+dN9+nJOZ" crossorigin="anonymous">
-    <!-- Core theme CSS (includes Bootstrap)-->
-    <link href="css/styles.css" rel="stylesheet" />
-</head>
-<body>
-    <div class="d-flex" id="wrapper">
-        <!-- Sidebar-->
-        <div class="border-end bg-white" id="sidebar-wrapper">
-            <div class="sidebar-heading border-bottom bg-light">Home</div>
-            <div class="list-group list-group-flush">
-                <a class="list-group-item list-group-item-action list-group-item-light p-3" href="/">Homepage</a>
-                <a class="list-group-item list-group-item-action list-group-item-light p-3" href="/write">write</a>
-                <a class="list-group-item list-group-item-action list-group-item-light p-3" href="/list">list</a>
-                <a class="list-group-item list-group-item-action list-group-item-light p-3" href="/login">login</a>
-                <a class="list-group-item list-group-item-action list-group-item-light p-3" href="/logout">logout</a>
-                <a class="list-group-item list-group-item-action list-group-item-light p-3" href="/mypage">Mypage</a>
-                <a class="list-group-item list-group-item-action list-group-item-light p-3" href="/socket">Chat</a>
-            </div>
-        </div>
-        <!-- Page content wrapper-->
-        <div id="page-content-wrapper">
-            <!-- Top navigation-->
-            <nav class="navbar navbar-expand-lg navbar-light bg-light border-bottom">
-                <div class="container-fluid">
-                    <button class="btn btn-primary" id="sidebarToggle">Toggle Menu</button>
-                    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation"><span class="navbar-toggler-icon"></span></button>
-                    <div class="collapse navbar-collapse" id="navbarSupportedContent">
-                    </div>
-                </div>
-            </nav>
-            <!-- Page content-->
-            <div class="container input-group mb-2">
-                <input class="form-control" id="search-input">
-                <button class="input-group-append btn btn-danger" id="search">검색</button>
-            </div>
-            <div class="container">
-                <ul class="list-group">
-                    <% for (var i = 0; i < posts.length; i++){ %>
-                    <li class="list-group-item">
-                        <h4>글 번호 : <%= posts[i]._id %> </h4>
-                        <h4> 제목 : <%= posts[i].제목 %> </h4>
-                        <p> 내용 : <%= posts[i].내용 %> </p>
-                        <button class="btn btn-danger delete" data-id="<%= posts[i]._id %>">삭제</button>
-                        <!-- <button class="btn btn-secondary chat" data-id="<%= posts[i].작성자%>">채팅</button> -->
-                    </li>
-                    <% } %>
-                </ul>
-            </div>
-        </div>
-    </div>
-    <!-- Bootstrap core JS-->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
-    <!-- Core theme JS-->
-    <script src="js/scripts.js"></script>
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script>
-        $('.chat').click(function(e){
-            var _id = e.target.dataset.id;
-            $.post('/chatroom', {당한사람id : _id}).then(() => {
-                console.log('채팅방 게시물 생성 완료')
-            });
-        });
-        $('#search').click(function(){
-            var input = $('#search-input').val();
-            window.location.replace('/search?value=' + input)
-        });
+<html lang="ko">
 
-        $('.delete').click(function(e){
-            var number = e.target.dataset.id;
-            $.ajax({
-                method: 'DELETE',
-                url: '/delete',
-                data: {_id : number}
-            }).done((결과) => {
-                $(e.target).parent('li').fadeOut();
-            });
-        });
-    </script>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>모던 CRUD 게시판</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <style>
+    body {
+      background: #f5f6f8;
+      font-family: 'Noto Sans KR', 'Inter', sans-serif;
+      color: #111;
+    }
+
+    /* ✅ 상단 네비게이션 바 */
+    .navbar-custom {
+      background: #ffffff;
+      border-bottom: 1px solid #e5e5e5;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+    }
+
+    .navbar-brand {
+      font-weight: 600;
+      color: #0d6efd;
+    }
+
+    .nav-link {
+      color: #111 !important;
+      font-weight: 500;
+      margin-right: 15px;
+      transition: color 0.2s ease;
+    }
+
+    .nav-link:hover {
+      color: #0d6efd !important;
+    }
+
+    .board-container {
+      max-width: 800px;
+      margin: 80px auto 40px;
+      /* 네비바와 간격 확보 */
+      background: #fff;
+      border-radius: 20px;
+      padding: 24px;
+      border: 1px solid #f0f0f0;
+      color: #111;
+    }
+
+    .btn-modern {
+      background: #f1f3f5;
+      border: none;
+      border-radius: 12px;
+      padding: 8px 16px;
+      font-weight: 500;
+      color: #111;
+      transition: background 0.2s ease-in-out;
+    }
+
+    .btn-modern:hover {
+      background: #e9ecef;
+      color: #111;
+    }
+
+    .table {
+      border-collapse: separate;
+      border-spacing: 0 10px;
+      color: #111;
+    }
+
+    .table thead th {
+      border: none;
+      color: #111;
+      font-weight: 500;
+    }
+
+    .table tbody tr {
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 0 0 1px #f1f3f5;
+      transition: background-color 0.4s ease, transform 0.2s ease, box-shadow 0.3s ease;
+    }
+
+    .table tbody tr:hover {
+      background-color: rgba(21, 105, 230, 0.05);
+      transform: scale(1.005);
+      box-shadow: 0 0 0 2px #e0e0e0;
+      color: #111;
+    }
+
+    .table td,
+    .table th {
+      border: none;
+      vertical-align: middle;
+      color: #111;
+    }
+
+    .table td:first-child {
+      border-top-left-radius: 16px;
+      border-bottom-left-radius: 16px;
+    }
+
+    .table td:last-child {
+      border-top-right-radius: 16px;
+      border-bottom-right-radius: 16px;
+    }
+      td.date-cell {
+    width: 150px; /* 원하는 고정 너비 */
+    white-space: nowrap; /* 한 줄로 유지 */
+    overflow: hidden; /* 넘치는 내용 숨김 */
+    text-overflow: ellipsis; /* 넘칠 경우 ... 표시 */
+  }
+  </style>
+</head>
+
+<body>
+  <!-- ✅ 상단 네비게이션 -->
+  <nav class="navbar navbar-expand-lg navbar-custom fixed-top">
+    <div class="container">
+      <a class="navbar-brand" href="/">MyBoard</a>
+      <div class="collapse navbar-collapse justify-content-end">
+        <ul class="navbar-nav">
+          <li class="nav-item">
+            <a class="nav-link" href="/logout">로그아웃</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="/mypage">내 정보</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="/socket">채팅방</a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ✅ 게시판 본문 -->
+  <div class="board-container">
+    <div class="d-flex justify-content-end mb-3">
+      <button class="btn btn-modern" id="addBtn" data-bs-toggle="modal" data-bs-target="#writeModal">＋ 글 작성</button>
+    </div>
+<table class="table table-hover align-middle text-center">
+  <thead>
+    <tr>
+      <th>제목</th>
+      <th>작성자</th>
+      <th>내용</th>
+      <th>날짜</th>
+    </tr>
+  </thead>
+  <tbody id="boardList">
+    <% for (const post of posts) { %>
+      <tr class="clickable-row" data-href="/detail/<%= post._id %>">
+        <td><%= post.제목 %></td>
+        <td><%= post.작성자 || '익명' %></td>
+        <td><%= post.내용 %></td>
+        <td class="date-cell"><%= post.날짜 %></td>
+        <!-- <td>
+          <% if (user && user.nm == post.작성자) { %>
+            <button class="btn btn-sm btn-outline-primary me-1 edit-btn" data-id="<%= post._id %>">수정</button>
+            <button class="btn btn-sm btn-outline-danger delete-btn" data-id="<%= post._id %>">삭제</button>
+          <% } %>
+        </td> -->
+      </tr>
+    <% } %>
+  </tbody>
+</table>
+  </div>
+
+  <!-- ✅ 글 작성 모달 -->
+  <div class="modal fade" id="writeModal" tabindex="-1" aria-labelledby="writeModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="writeModalLabel"> 글 작성</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form id="postForm">
+            <div class="mb-3">
+              <label for="title" class="form-label">제목</label>
+              <input type="text" class="form-control" id="title" name="title" required>
+            </div>
+            <div class="mb-3">
+              <label for="content" class="form-label">내용</label>
+              <textarea class="form-control" id="content" name="content" required></textarea>
+            </div>
+            <div class="d-flex justify-content-end">
+              <button type="submit" class="btn btn-modern">작성 완료</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ✅ 스크립트 -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+  <script>
+    document.querySelectorAll('.clickable-row').forEach(row => {
+      row.addEventListener('click', function (e) {
+        if (e.target.tagName === 'BUTTON') { return; } // 버튼 클릭 시 이동 방지
+        const href = this.dataset.href;
+        if (href) { window.location.href = href; }
+      });
+    });
+    // 삭제 버튼
+    $('.delete-btn').click(function (e) {
+      const id = $(this).data('id');
+      $.ajax({
+        method: 'DELETE',
+        url: '/delete',
+        data: { _id: id }
+      }).done(() => {
+        $(e.target).closest('tr').fadeOut();
+      });
+    });
+
+    // 수정 버튼
+    $('.edit-btn').click(function () {
+      const id = $(this).data('id');
+      window.location.href = '/edit/' + id;
+    });
+
+    // 게시물 작성 폼
+    document.getElementById('postForm').addEventListener('submit', function (event) {
+      event.preventDefault();
+
+      const title = document.getElementById('title').value;
+      const content = document.getElementById('content').value;
+
+      const postData = { title, content };
+
+      fetch('/add', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(postData)
+      })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            const modal = bootstrap.Modal.getInstance(document.getElementById('writeModal'));
+            modal.hide();
+            window.location.reload();
+          } else {
+            alert('게시물 작성에 실패했습니다.');
+          }
+        })
+        .catch(error => console.log('오류 발생:', error));
+    });
+  </script>
 </body>
+
 </html>

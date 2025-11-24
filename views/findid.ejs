@@ -1,54 +1,147 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ko">
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>아아디찾기</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-KK94CHFLLe+nY2dmCWGMq91rCGa5gtU4mk92HdvYe+M/SXH301p5ILy+dN9+nJOZ" crossorigin="anonymous">
-  </head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>아이디 찾기</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <style>
+    body {
+      background: #f5f6f8;
+      font-family: 'Noto Sans KR', 'Inter', sans-serif;
+      color: #111;
+    }
+
+    .navbar-custom {
+      background: #ffffff;
+      border-bottom: 1px solid #e5e5e5;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+    }
+
+    .navbar-brand {
+      font-weight: 600;
+      color: #0d6efd;
+    }
+
+    .nav-link {
+      color: #111 !important;
+      font-weight: 500;
+      margin-right: 15px;
+      transition: color 0.2s ease;
+    }
+
+    .nav-link:hover {
+      color: #0d6efd !important;
+    }
+
+    .board-container {
+      max-width: 600px;
+      margin: 80px auto;
+      background: #fff;
+      border-radius: 20px;
+      padding: 32px;
+      border: 1px solid #f0f0f0;
+      color: #111;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+    }
+
+    .btn-modern {
+      background: #f1f3f5;
+      border: none;
+      border-radius: 12px;
+      padding: 10px 16px;
+      font-weight: 500;
+      color: #111;
+      transition: background 0.2s ease-in-out;
+      width: 100%;
+    }
+
+    .btn-modern:hover {
+      background: #e9ecef;
+      color: #111;
+    }
+
+    .form-control {
+      border-radius: 12px;
+      padding: 10px 14px;
+      border: 1px solid #dee2e6;
+    }
+
+    .form-control:focus {
+      border-color: #0d6efd;
+      box-shadow: 0 0 0 3px rgba(13,110,253,0.1);
+    }
+
+    h4 {
+      font-weight: 600;
+      color: #111;
+      margin-bottom: 16px;
+    }
+
+    p {
+      color: #555;
+    }
+  </style>
 </head>
 <body>
-  <nav class="navbar navbar-expand-lg bg-body-tertiary">
-    <div class="container-fluid">
-      <a class="navbar-brand" href="/">Home</a>
-      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
-        <span class="navbar-toggler-icon"></span>
-      </button>
-      <div class="collapse navbar-collapse" id="navbarSupportedContent">
-        <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-          <li class="nav-item">
-            <a class="nav-link active" aria-current="page" href="/write">Write</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="/list">List</a>
-          </li>
-            <li class="nav-item">
-              <a class="nav-link" href="/login">Login</a>
-            </li>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="/signup">Signup</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="/logout">LogOut</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="/mypage">Mypage</a>
-          </li>
-        </ul>
-        <form class="d-flex" role="search">
-          <input class="form-control me-2" type="search" placeholder="Search" aria-label="Search">
-          <button class="btn btn-outline-success" type="submit">Search</button>
-        </form>
-      </div>
-    </div>
-  </nav>
-  <form action="/findid" method="POST">
-    <p>이메일을 입력해주세요.</p>
-    <input class="form-control" name="email" id="search-input" style="width:200px;height:30px;font-size:15px">
-    <button class="btn btn-danger" type="submit">제출</button>
-  </form>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ENjdO4Dr2bkBIFxQpeoTz1HIcje39Wm4jDKdf19U8gI4ddQ3GYNS7NTKfAdVQSZe" crossorigin="anonymous"></script>
-  </body>
+
+
+  <!-- ✅ 아이디 찾기 본문 -->
+  <div class="board-container">
+    <h4>아이디 찾기</h4>
+    <form id="findForm">
+      <p>가입하신 <strong>이메일</strong>을 입력해주세요.</p>
+      <input class="form-control mb-3" name="em" id="em" placeholder="이메일 입력" required>
+      <button class="btn-modern" type="submit">제출</button>
+    </form>
+  </div>
+
+<script>
+  // Enter로 제출 가능
+  document.getElementById('em').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      document.getElementById('findForm').requestSubmit();
+    }
+  });
+
+  // 이메일로 아이디 찾기 요청
+  document.getElementById('findForm').addEventListener('submit', async function (e) {
+    e.preventDefault();
+
+    const em = document.getElementById('em').value.trim();
+    if (!em) {
+      alert('이메일을 입력해주세요.');
+      return;
+    }
+
+    try {
+      const res = await fetch('/findid', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ em })
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        // 여러 ID일 경우 줄바꿈 처리
+        const idList = data.ids.join('\n');
+
+        alert(`✅ 입력하신 이메일 "${em}" 에 해당하는 아이디 목록:\n\n${idList}`);
+
+        window.location.href = '/login';
+      } else {
+        alert('❌ 해당 이메일로 등록된 아이디가 없습니다.');
+        window.location.href = '/login';
+      }
+    } catch (err) {
+      alert('⚠️ 서버 오류가 발생했습니다.');
+      console.error(err);
+    }
+  });
+</script>
+
 </body>
 </html>

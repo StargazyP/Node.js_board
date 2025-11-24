@@ -1,465 +1,530 @@
 const express = require('express');
-
 const app = express();
-
 const http = require('http').createServer(app);
 const { Server } = require("socket.io");
 const io = new Server(http);
-
 const bodyParser = require('body-parser');
-
 const MongoClient = require('mongodb').MongoClient;
-
-const port = 8080;
-
 const passport = require('passport');
-
 const LocalStrategy = require('passport-local').Strategy;
-
 const session = require('express-session');
-
 const bcrypt = require('bcrypt');
-
 const flash = require('connect-flash');
-
 const nodemailer = require('nodemailer');
-
 const path = require('path');
-
+const multer = require('multer');
+require('dotenv').config();
+const verificationCodes = new Map();
+// ========== 기본 설정 ==========
 app.use(express.static(path.join(__dirname, 'public')));
-
-app.use(express.urlencoded({ extended: true }));
-
 app.set('view engine', 'ejs');
+app.use(express.urlencoded({ extended: true }));
+app.use(bodyParser.json());
+app.use(flash());
 
-require('dotenv').config()
-
-let multer = require('multer');
-
-var storage = multer.diskStorage({
-  destination : function(req, file, cb){
-    cb(null, './public/image')
-  },
-  filename : function(req, file, cb){
-    cb(null, file.originalname )
-  }
-});
-
-var upload = multer({ storage: storage });
-
+// ========== 세션 설정 ==========
 app.use(session({
   secret: '비밀코드',
   resave: true,
   saveUninitialized: false
 }));
 
+// ========== Passport 초기화 ==========
 app.use(passport.initialize());
 app.use(passport.session());
 
-app.use(flash());
-app.use(bodyParser.urlencoded({ extended: true }));
-
-// allow us to get the data in request.body
-app.use(express.json({ extended: false })); 
-
-app.get('/edit', function(요청,응답){
-    응답.render('edit.ejs')
-})
-
-app.get('/signup', function(요청,응답){
-    응답.render('signup.ejs');
-})
-
-app.get('/login', function(요청,응답){
-    응답.render('login.ejs');
+// ========== 파일 업로드 설정 ==========
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, './public/image'),
+  filename: (req, file, cb) => cb(null, file.originalname)
 });
+const upload = multer({ storage });
 
-app.get('/logout', function (req, res) {
-  req.logout(function (err) {
-    if (err) {
-      console.log(err);
-    }
-    req.session.destroy(); // 세션 삭제
-    res.redirect('/'); // 로그인 페이지로 리다이렉트 또는 응답을 보낼 수 있습니다.
-  });
+// ========== 로그인 확인 미들웨어 ==========
+function 로그인(req, res, next) {
+  if (req.isAuthenticated?.() || req.session.user) {
+    return next(); // 로그인되어 있으면 다음으로
+  }
+  console.log('⛔ 로그인되지 않은 접근');
+  req.flash('error', '로그인이 필요합니다.');
+  return res.redirect('/login'); // 로그인 페이지로 이동
+}
+
+// ========== MongoDB 연결 ==========
+let db;
+MongoClient.connect(process.env.DB_URL, { useUnifiedTopology: true }, (err, client) => {
+  if (err) return console.log(err);
+  db = client.db('server');
+  console.log('MongoDB Connected');
 });
-app.get('/mypage', function (req, res) {
-  // 세션에서 사용자 정보 가져오기
-  var user = req.session.user;
-
-  // 사용자 정보가 세션에 저장되어 있는지 확인
-  if (user) {
-    res.render('mypage.ejs', { 사용자: user }); // mypage.ejs 템플릿에 사용자 정보 전달
-  } else {
-    res.redirect('/login'); // 사용자 정보가 없으면 로그인 페이지로 리다이렉트
+// ===== 이메일 전송 설정 (Gmail 예시) =====
+const transporter = nodemailer.createTransport({
+  host: 'smtp.naver.com',
+  port: 465,
+  secure: true,
+  auth: {
+    user: 'jdajsl0415@naver.com',
+    pass: 'JHY7Y8UYPLY4'   // 네이버 애플리케이션 비밀번호
   }
 });
-
-app.get('/fail', function (요청, 응답) {
-    응답.send('인증에 실패했습니다.');
-});
-
-function 로그인(req, res, next) {
-    if (req.user) {
-        next();
-    } else {
-        res.send('로그인 안했음');
-    }
-}
+// ========== Passport LocalStrategy (Debug Logging Added) ==========
 passport.use(new LocalStrategy({
   usernameField: 'id',
   passwordField: 'pw',
-  session: true,
-  passReqToCallback: false,
-}, function (입력한아이디, 입력한비번, done) {
-  db.collection('login').findOne({ id: 입력한아이디 }, async function (err, user) {
+  session: true
+}, (id, pw, done) => {
+
+  console.log("🔍 [DEBUG] LocalStrategy 호출됨");
+  console.log("🔍 입력받은 ID:", id);
+  console.log("🔍 입력받은 PW:", pw);
+
+  db.collection('login').findOne({ id }, async (err, user) => {
+
+    console.log("📌 [DEBUG] DB에서 조회 시도: id =", id);
+
     if (err) {
+      console.log("❌ [DEBUG] DB 조회 중 오류 발생:", err);
       return done(err);
     }
+
     if (!user) {
+      console.log("❌ [DEBUG] 아이디 없음:", id);
       return done(null, false, { message: '존재하지 않는 아이디입니다.' });
     }
+
+    console.log("✅ [DEBUG] DB 조회 성공, user:", user);
+
+    // 비밀번호 비교
     try {
-      const match = await bcrypt.compare(입력한비번, user.pw);
+      const match = await bcrypt.compare(pw, user.pw);
+      console.log("🔍 [DEBUG] 비밀번호 비교 결과:", match);
+
       if (match) {
+        console.log("✅ [DEBUG] 로그인 성공:", user.id);
         return done(null, user);
       } else {
+        console.log("❌ [DEBUG] 비밀번호 불일치");
         return done(null, false, { message: '비밀번호가 일치하지 않습니다.' });
       }
     } catch (error) {
+      console.log("❌ [DEBUG] 비밀번호 비교 중 오류:", error);
       return done(error);
     }
   });
 }));
-
-passport.serializeUser(function (user, done) {
+// ========== serializeUser ==========
+passport.serializeUser((user, done) => {
+  console.log("🧩 [DEBUG] serializeUser 실행됨");
+  console.log("🧩 저장할 user.id:", user.id);
   done(null, user.id);
 });
 
-passport.deserializeUser(function (아이디, done) {
-  db.collection('login').findOne({ id: 아이디 }, function (err, user) {
+
+// ========== deserializeUser ==========
+passport.deserializeUser((id, done) => {
+  console.log("🧩 [DEBUG] deserializeUser 실행됨 - 찾는 ID:", id);
+
+  db.collection('login').findOne({ id }, (err, user) => {
+    if (err) {
+      console.log("❌ [DEBUG] deserializeUser DB 에러:", err);
+      return done(err);
+    }
+    console.log("🔍 [DEBUG] deserializeUser 조회된 user:", user);
     done(err, user);
   });
-});
-app.post('/signup', async function (req, res) {
-    const id = req.body.id;
-    const pw = req.body.pw;
-    const em = req.body.em;
-  
-    try {
-      // 아이디 중복 체크
-      const user = await db.collection('login').findOne({ id: id });
-      if (user) {
-        return res.send('이미 사용 중인 아이디입니다.');
-      }
-  
-      // 비밀번호 해시
-      const hashedPassword = await bcrypt.hash(pw, 10);
-  
-      // 사용자 정보 저장
-      await db.collection('login').insertOne({ id: id, pw: hashedPassword, em: em});
-      res.redirect('/login');
-    } catch (error) {
-      console.log(error);
-      res.status(500).send('회원가입에 실패했습니다.');
-    }
-  });
-
-  app.post('/login', passport.authenticate('local', {
-    failureRedirect: '/fail'
-  }), function (req, res) {
-    req.session.user = req.user; // 세션에 사용자 정보 저장
-    console.log('세션에 사용자 정보 저장 완료:', req.session.user);
-    res.redirect('/'); // 메인 페이지로 리다이렉트 또는 응답을 보낼 수 있습니다.
-  });
-  
-  app.post('/register', function(요청,응답){
-    db.collection('login').insertOne({id : 요청.body.id, pw : 요청.body.pw}, function(에러,결과){
-      응답.render('/')
-    })
-  });
-
-var db;
-MongoClient.connect(process.env.DB_URL, { useUnifiedTopology: true }, function(err, client) {
-    if (err) console.log(err);
-    else {
-        db = client.db('server');
-        console.log('db open');
-    }
-});
-const { ObjectId } = require('mongodb');
-app.post('/chatroom', 로그인, function(req,res){
-
-  var 저장할거임 = {
-    title : '무슨채팅방',
-    member : [req.body.당한사람id, req.user._id],
-    date : new Date()
-  }
-  db.collection('chatroom').insertOne(저장할거임).then(function(result){
-    res.send('저장완료')
-  });
-});
-
-app.get('/chat', 로그인, function(req,res){
-
-  db.collection('chatroom').find({ member : req.user._id }).toArray().then((result)=>{
-    res.render('chat.ejs', { data : result})
-
-  })
 })
+// ========== 라우팅 ==========
+app.get('/', (req, res) => res.render('login.ejs'));
+app.get('/login', (req, res) => res.render('login.ejs'));
+app.get('/signup', (req, res) => res.render('signup.ejs'));
+app.get('/main', (req, res) => res.render('index.ejs'));
+app.get('/edit', (req, res) => res.render('edit.ejs'));
+app.get('/reset-password', (req, res) => res.render('reset-password.ejs'));
+app.get('/findid', (req, res) => res.render('findid.ejs'));
+// ========== 비밀번호 초기화 ================================
+app.post('/reset-password', async (req, res) => {
+  const { email } = req.body;
+  const user = await db.collection('login').findOne({ em: email });
 
-app.post('/message', 로그인, function(req,res){
-  var 저장할거야 = {
-    parent : req.body.parent,
-    userid: req.user._id,
-    content : req.body.content,
-    date : new Date(),
-  }
-  db.collection('message').insertOne(저장할거야).then((result)=>{
-    res.send(result);
-  })
-});
+  if (!user) return res.json({ success: false });
 
-app.get('/message/:id',로그인,function(req,res){
-  res.writeHead(200, {
-    "Connection" : "keep-alive",
-    "Content-Type" : "text/event-stream",
-    "Cache-Control" : "no-cache",
-  });
-  db.collection('message').find({ parent : req.params.id}).toArray().then((result)=>{
-  res.write('event: test\n');
-  res.write('data:' + JSON.stringify(result) +'\n\n');
-  })
-  const pipeline = [
-    { $match : {'fullDocument.parent': req.params.id} }
-  ];
-  const collection = db.collection('message');
-  const changeStream = collection.watch(pipeline);
-  changeStream.on('change', (result)=>{
-    res.write('event: test\n');
-    res.write('data: ' + JSON.stringify([result.fullDocument]) + '\n\n');
+  const code = Math.floor(100000 + Math.random() * 900000).toString();
+  verificationCodes.set(email, code);
 
-  });
-});
-app.get('/', function(req,res){
-    res.render('index.ejs')
-})
-app.get('/findid', function(req,res){
-  res.render('findid.ejs');
-})
-app.post('/findid', function (req, res) {
-  const email = req.body.email; // 폼에서 전송된 이메일 값을 가져옵니다.
-
-  db.collection('login').findOne({ em: email }, function (err, result) {
-    if (err) {
-      console.error('ID 검색 중 오류 발생:', err);
-      res.status(500).send('서버 오류');
-    } else {
-      if (result && result.em) {
-        res.send(`아이디는 : ${result.id} 입니다.`);
-      } else {
-        res.send('검색 결과가 없습니다.');
-      }
-    }
-  });
-});
-app.get('/reset-password', function(req, res) {
-  res.render('reset-password.ejs');
-});
-
-app.post('/reset-password', function(req, res) {
-  const email = req.body.email; // 폼에서 전송된 이메일 값을 가져옵니다.
-
-  // 암호 변경 페이지 URL을 생성합니다.
-  const resetPasswordUrl = `http://localhost/reset-password-new/?email=${encodeURIComponent(email)}`;
-
-
-  // 이메일 전송을 위한 transporter를 설정합니다.
-  const transporter = nodemailer.createTransport({
-    service: 'Gmail',
-    auth: {
-      user: 'jangdong041512@gmail.com',
-      pass: 'fwnptpwoambbyklj'
-    }
-  });
-
-  // 이메일 옵션을 설정합니다.
-  const mailOptions = {
-    from: 'your-email@gmail.com',
-    to: email,
-    subject: '암호 변경',
-    text: `다음 링크를 통해 암호를 변경하세요: ${resetPasswordUrl}`
-  };
-
-  // 이메일을 전송합니다.
-  transporter.sendMail(mailOptions, function(error, info) {
-    if (error) {
-      console.error('이메일 전송 중 오류 발생:', error);
-      res.status(500).send('서버 오류');
-    } else {
-      console.log('이메일이 성공적으로 전송되었습니다.');
-      res.send('이메일이 전송되었습니다.');
-    }
-  });
-});
-
-app.get('/reset-password-new', function (req, res) {
-  const email = req.query.email; // URL에서 이메일 값을 가져옵니다.
-  res.render('reset-password-new.ejs', { email: email }); // reset-password-new.ejs 템플릿을 렌더링합니다.
-});
-
-app.post('/reset-password-new', function (req, res) {
-  const email = req.body.email; // 폼에서 전송된 이메일 값
-  const newPassword = req.body.newPassword; // 폼에서 전송된 새로운 비밀번호 값
-
-  // 데이터베이스에서 사용자를 찾아서 비밀번호를 업데이트
-  const collection = db.collection('login'); // 사용자 정보를 저장한 컬렉션 이름
-
-  const hashedPassword = bcrypt.hashSync(newPassword, 10);
-
-  // 사용자를 찾아서 비밀번호를 업데이트합니다.
-  collection.updateOne({ em: email }, { $set: { pw: hashedPassword } }, function (err, result) {
-    if (err) {
-      console.error('암호 변경 중 오류 발생:', err);
-      res.status(500).send('서버 오류');
-    } else {
-      if (result.matchedCount > 0) {
-        console.log('암호가 성공적으로 변경되었습니다.');
-        res.send('암호가 성공적으로 변경되었습니다.');
-      } else {
-        console.log('사용자를 찾을 수 없습니다.');
-        res.status(404).send('사용자를 찾을 수 없습니다.');
-      }
-    }
-  });
-});
-
-app.get('/search', (요청, 응답)=>{
-
-  var 검색조건 = [
-    {
-      $search: {
-        index: 'titleSearch',
-        text: {
-          query: 요청.query.value,
-          path: ['제목','날짜']  // 제목날짜 둘다 찾고 싶으면 ['제목', '날짜']
-        }
-      }
-    },
-    {$sort : { _id : 1} },
-    {$limit : 10},
-    {$project : { 제목 : 1, _id:0}}
-  ] 
-  console.log(요청.query);
-  db.collection('post').aggregate(검색조건).toArray((에러, 결과)=>{
-    console.log(결과)
-    응답.render('search.ejs', {posts : 결과})
-  })
-})
-
-app.get('/write', function(req, res) {
-  if (!req.user) {
-    console.log('로그인되지 않았습니다.');
-    req.flash('error', '로그인이 필요합니다.'); // 클라이언트에게 전달할 에러 메시지 설정
-    return res.redirect('/login'); // 로그인 페이지로 리다이렉트
-  }
-  res.sendFile(__dirname + '/write.html');
-});
-
-app.get('/list', function(요청,응답){
-  if (!요청.user) {
-    console.log('로그인되지 않았습니다.');
-    요청.flash('error', '로그인이 필요합니다.'); // 클라이언트에게 전달할 에러 메시지 설정
-    return 응답.redirect('/login'); // 로그인 페이지로 리다이렉트
-  }
-    //디비에 저장된 post 라는 collection 의 데어터들을 모두 꺼냄.
-    db.collection('post').find().toArray(function (에러,결과){
-        console.log(결과);
-        응답.render('list.ejs', { posts : 결과 });
+  try {
+    await transporter.sendMail({
+      from: 'jdajsl0415@naver.com', // 네이버 메일 그대로 사용
+      to: email,
+      subject: '비밀번호 재설정 인증 코드',
+      text: `인증 코드: ${code}`
     });
-});
-app.get('/detail/:id', function(요청,응답){
-    db.collection('post').findOne({_id : parseInt(요청.params.id) }, function(에러,결과){
-        응답.render('detail.ejs', {data : 결과})
-    })
-});
 
-// DB에 입력한 데이터를 전송하는 POST
-app.post('/add', function (req, res) {
-  if (!db) {
-    console.log('DB 연결 오류');
-    return;
+    res.json({ success: true });
+  } catch (err) {
+    console.error('메일 전송 오류:', err);
+    res.status(500).json({ success: false });
   }
+});
 
-  // 로그인된 사용자인지 확인
-  if (!req.user) {
-    console.log('로그인되지 않았습니다.');
-    return res.redirect('/login'); // 로그인 페이지로 리다이렉트
+// ========== 인증코드 검증 ==================================
+app.post('/verify-code', (req, res) => {
+  const { email, code } = req.body;
+
+  const savedCode = verificationCodes.get(email);
+
+  if (savedCode && savedCode === code) {
+    res.json({ success: true });
+  } else {
+    res.json({ success: false });
   }
+});
 
-  db.collection('counter').findOne({ name: '게시물갯수' }, function (에러, 결과) {
-    console.log(결과.toTalPost);
-    var 총게시물갯수 = 결과.toTalPost;
+// ========== 새 비밀번호 저장 ==================================
+app.post('/reset-password-new', async (req, res) => {
+  const { email, newPassword } = req.body;
 
-    var 저장할거 = {
+  try {
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    await db.collection('login').updateOne(
+      { em: email },
+      { $set: { pw: hashedPassword } }
+    );
+
+    // 인증코드 사용 후 즉시 삭제
+    verificationCodes.delete(email);
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error('비밀번호 변경 오류:', err);
+    res.status(500).json({ success: false });
+  }
+});
+// ========== 아이디 존재 확인 (이메일 없이 id 기반) ==========
+app.post('/findid', async (req, res) => {
+  const em = req.body.em; // 사용자가 입력한 이메일
+
+  try {
+    const user = await db.collection('login').find({ em }).toArray(); // 이메일로 검색
+
+    if (user.length > 0) {
+      const ids = user.map(u => u.id);
+      res.json({ success: true, ids });
+    } else {
+      res.json({ success: false, message: '해당 메일로 등록된 아이디가 없습니다.' });
+    }
+  } catch (err) {
+    console.error('아이디 찾기 오류:', err);
+    res.status(500).json({ success: false, error: '서버 오류' });
+  }
+});
+// ========== 회원가입 ==========
+app.post('/signup', async (req, res) => {
+  const { id, pw, em, nm } = req.body;
+  try {
+    const exists = await db.collection('login').findOne({ id });
+    if (exists) return res.send('이미 사용 중인 아이디입니다.');
+    const hashed = await bcrypt.hash(pw, 10);
+    await db.collection('login').insertOne({ id, pw: hashed, em, nm });
+    res.redirect('/login');
+  } catch (e) {
+    console.error(e);
+    res.status(500).send('회원가입 실패');
+  }
+});
+
+// ========== 로그인 ==========
+app.post('/login', (req, res, next) => {
+  passport.authenticate('local', (err, user, info) => {
+    if (err) {
+      console.error(err);
+      return next(err);
+    }
+
+    if (!user) {
+      // 로그인 실패
+      return res.redirect('/login?error=1');
+    }
+
+    // 로그인 성공 → 세션에 저장
+    req.logIn(user, (err) => {
+      if (err) return next(err);
+
+      req.session.user = {
+        id: user.id,
+        nm: user.nm
+      };
+
+      console.log('로그인 성공', req.session.user);
+      return res.redirect('/list');
+    });
+  })(req, res, next);
+});
+
+
+// ========== 로그아웃 ==========
+app.get('/logout', (req, res, next) => {
+  if (req.isAuthenticated?.()) {
+    req.logout(err => {
+      if (err) return next(err);
+      req.session.destroy();
+      res.redirect('/login');
+    });
+  } else {
+    req.session.destroy();
+    res.redirect('/login');
+  }
+});
+
+// ========== 마이페이지 (로그인 필요) ==========
+app.get('/mypage', 로그인, (req, res) => {
+  const user = req.user || req.session.user;
+  res.render('mypage.ejs', { user });  // 
+});
+
+// ========== 게시판 기능 ==========
+app.get('/list', 로그인, (req, res) => {
+  db.collection('post').find().toArray((err, result) => {
+    res.render('list.ejs', { posts: result, user: req.session.user });
+  });
+});
+
+// ========== 게시물 작성 페이지 핸들링 =============
+app.get('/write', 로그인, (req, res) => res.render('write.ejs'));
+// =========== 게시물 작성 핸들링 ===============
+app.post('/add', 로그인, (req, res) => {
+  db.collection('counter').findOne({ name: '게시물갯수' }, (err, result) => {
+    if (err) return res.json({ success: false });
+    const now = new Date();
+    const kstDate = new Date(now.getTime() + 9 * 60 * 60 * 1000);
+
+    // 포맷팅
+    const formattedDate = kstDate.toISOString().slice(0, 19).replace('T', ' ');
+
+    const 총게시물갯수 = result.toTalPost;
+    const 저장할거 = {
       _id: 총게시물갯수 + 1,
-      작성자: req.user._id,
       제목: req.body.title,
-      내용: req.body.content
+      내용: req.body.content,
+      작성자: req.session.user.nm,
+      작성자_id: req.session.user.id,
+      날짜: formattedDate // 여기서 날짜와 시간 저장
     };
 
-    db.collection('post').insertOne(저장할거, function (에러, 결과) {
-      db.collection('counter').updateOne({ name: '게시물갯수' }, { $inc: { toTalPost: 1 } }, function (에러, 결과) {
-        if (에러) {
-          console.log('에러');
-          return res.send('에러 발생'); // 에러 처리를 진행하세요.
+    db.collection('post').insertOne(저장할거, (err, result) => {
+      if (err) return res.json({ success: false });
+
+      db.collection('counter').updateOne(
+        { name: '게시물갯수' },
+        { $inc: { toTalPost: 1 } },
+        (err, result) => {
+          if (err) return res.json({ success: false });
+
+          // JSON으로 성공 메시지 전달
+          res.json({ success: true, redirect: '/list' });
         }
-        console.log('저장완료');
-        res.redirect('/');
+      );
+    });
+  });
+});
+/* ================== 3. 대댓글 작성 ================== */
+app.post('/comment/reply', async (req, res) => {
+  try {
+    const { postId, parentId, content } = req.body;
+
+
+    if (!req.session.user)
+      return res.json({ success: false, message: '로그인이 필요합니다.' });
+
+
+    const now = new Date();
+    const kst = new Date(now.getTime() + 9 * 60 * 60 * 1000);
+
+
+    await db.collection('comments').insertOne({
+      postId: parseInt(postId),
+      content,
+      writer: req.session.user.nm,
+      writer_id: req.session.user.id,
+      date: kst.toISOString().slice(0, 19).replace('T', ' '),
+      parentId: parseInt(parentId) // 어떤 댓글에 대한 답글인지
+    });
+
+
+    res.json({ success: true });
+  } catch (err) {
+    console.log(err);
+    res.json({ success: false });
+  }
+});
+// ================= 게시물 댓글 작성 ============================
+app.post('/comment/add', async (req, res) => {
+  try {
+    const { postId, content } = req.body;
+
+    // 로그인 체크
+    if (!req.session.user) {
+      return res.json({
+        success: false,
+        message: "로그인이 필요합니다"
       });
+    }
+
+    const writer = req.session.user.nm;
+    const writer_id = req.session.user.id;   // ✅ 오타 수정
+
+    console.log('writer:', writer, ' writer_id:', writer_id);
+
+    // 날짜 생성 (KST 기준)
+    const now = new Date();
+    const kstDate = new Date(now.getTime() + 9 * 60 * 60 * 1000);
+    const dateString = kstDate.toISOString().slice(0, 19).replace('T', ' ');
+
+    await db.collection('comments').insertOne({
+      postId: parseInt(postId),
+      writer: writer,
+      writer_id: writer_id,
+      content: content,
+      date: dateString
     });
+
+    return res.json({ success: true });
+
+  } catch (err) {   // ✅ err 추가
+    console.log("댓글 저장 오류:", err);
+    res.json({ success: false });
+  }
+});
+
+// ================== 게시물 상세 페이지 핸들링 ===================
+app.get('/detail/:id', async (req, res) => {
+  try {
+    const postId = parseInt(req.params.id);
+    const post = await db.collection('post').findOne({ _id: postId });
+    if (!post) return res.status(404).send('게시물없음');
+    const comments = await db.collection('comments').find({ postId }).sort({ _id: -1 }).toArray();
+    res.render('detail.ejs', {
+      post, comments, user: req.session.user
+    });
+  } catch (err) {
+    console.log(err);
+    res.status(500).send('서버오류');
+  }
+});
+// ================ 게시글 삭제 ======================
+app.delete('/delete', 로그인, (req, res) => {
+  req.body._id = parseInt(req.body._id);
+  db.collection('post').deleteOne(req.body, () => res.send('삭제완료'));
+});
+// ================ 게시글 좋아요 ====================
+app.post('/post/like', async (req, res) => {
+  try {
+    if (!req.session.user) return res.json({ success: false, message: '로그인이 필요합니다.' });
+
+
+    const { postId } = req.body;
+    const userId = req.session.user.id;
+
+
+    const post = await db.collection('post').findOne({ _id: parseInt(postId) });
+    if (!post) return res.json({ success: false, message: '게시물이 존재하지 않습니다.' });
+
+
+    const liked = post.likes && post.likes.includes(userId);
+
+
+    if (liked) {
+      await db.collection('post').updateOne(
+        { _id: parseInt(postId) },
+        { $pull: { likes: userId } }
+      );
+    } else {
+      await db.collection('post').updateOne(
+        { _id: parseInt(postId) },
+        { $addToSet: { likes: userId } }
+      );
+    }
+
+
+    res.json({ success: true, liked: !liked });
+  } catch (err) {
+    console.log('like error', err);
+    res.json({ success: false });
+  }
+});
+// ========== 채팅 기능 ==========
+app.post('/chatroom', 로그인, (req, res) => {
+  const 저장할거 = {
+    title: '채팅방',
+    member: [req.body.당한사람id, req.user._id],
+    date: new Date()
+  };
+  db.collection('chatroom').insertOne(저장할거).then(() => res.send('저장완료'));
+});
+
+app.get('/chat', 로그인, (req, res) => {
+  db.collection('chatroom').find({ member: req.user._id }).toArray().then(result => {
+    res.render('chat.ejs', { data: result });
   });
 });
 
-app.delete('/delete', function(요청, 응답){
-    console.log(요청.body);
-    요청.body._id = parseInt(요청.body._id);
-    //요청.body에 담겨온 게시물번호를 가진 글을 db에서 찾아서 삭제
-    db.collection('post').deleteOne(요청.body, function(에러, 결과){
-      console.log('삭제완료');
-    });
-    응답.send('삭제완료');
-  });
-
-http.listen(process.env.PORT, function() {
-    console.log('server open');
+app.post('/message', 로그인, (req, res) => {
+  const msg = {
+    parent: req.body.parent,
+    userid: req.user._id,
+    content: req.body.content,
+    date: new Date(),
+  };
+  db.collection('message').insertOne(msg).then(result => res.send(result));
 });
 
-app.get('/socket', function(req,res){
-  res.render('socket.ejs')
-})
-
-io.on('connection', function(socket){
-  console.log('유저접속함');
-
-  socket.on('room1-send',function(data){
-    io.to('room1').emit('broadcast', data);
+app.get('/message/:id', 로그인, (req, res) => {
+  res.writeHead(200, {
+    "Connection": "keep-alive",
+    "Content-Type": "text/event-stream",
+    "Cache-Control": "no-cache",
   });
+  db.collection('message').find({ parent: req.params.id }).toArray().then(result => {
+    res.write('event: test\n');
+    res.write('data:' + JSON.stringify(result) + '\n\n');
+  });
+  const pipeline = [{ $match: { 'fullDocument.parent': req.params.id } }];
+  const collection = db.collection('message');
+  const changeStream = collection.watch(pipeline);
+  changeStream.on('change', (result) => {
+    res.write('event: test\n');
+    res.write('data: ' + JSON.stringify([result.fullDocument]) + '\n\n');
+  });
+});
 
-  socket.on('joinroom',function(data){
+// ========== 파일 업로드 ==========
+app.get('/upload', 로그인, (req, res) => res.render('upload.ejs'));
+app.post('/upload', 로그인, upload.array('uploading', 10), (req, res) => res.redirect('/'));
+
+// ========== Socket.io ==========
+app.get('/socket', 로그인, (req, res) => res.render('socket.ejs'));
+io.on('connection', (socket) => {
+  console.log('🟢 유저 접속');
+
+  // ✅ 특정 방에 들어가기
+  socket.on('joinroom', () => {
     socket.join('room1');
   });
 
-  socket.on('user-send',function(data){
-    io.emit('broadcast',data);
+  // ✅ 같은 방의 다른 사람에게만 메시지 전송 (본인 제외)
+  socket.on('room1-send', (data) => {
+    socket.broadcast.to('room1').emit('broadcast', data);
   });
- 
-})
 
-app.get('/upload', function(re,res){
-  res.render('upload.ejs');
-})
-
-app.post('/upload', upload.array('uploading', 10), function(req, res){
-  res.redirect('/');
+  // ✅ 모든 사람에게 메시지 전송 (본인 제외)
+  socket.on('user-send', (data) => {
+    socket.broadcast.emit('broadcast', data);
+  });
 });
+
+
+// ========== 서버 실행 ==========
+http.listen(process.env.PORT || 3000, '0.0.0.0', () => {
+  console.log(' Server running on port', process.env.PORT || 3000);
+});
+

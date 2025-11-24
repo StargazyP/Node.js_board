@@ -1,32 +1,125 @@
 <!DOCTYPE html>
-<html>
+<html lang="ko">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="X-UA-Compatible" content="ie=edge">
-  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css">
-  <title>Document</title>
+  <title>게시물 작성</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <style>
+    body {
+      background: #f5f6f8;
+      font-family: 'Noto Sans KR', 'Inter', sans-serif;
+      color: #111;
+      margin: 0;
+      padding: 20px;
+    }
+
+    .board-container {
+      max-width: 800px;
+      margin: 40px auto;
+      background: #fff;
+      border-radius: 20px;
+      padding: 30px;
+      border: 1px solid #f0f0f0;
+      color: #111;
+    }
+
+    .board-title {
+      font-weight: 600;
+      font-size: 1.5rem;
+      margin-bottom: 24px;
+      text-align: center;
+      color: #111;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    label {
+      font-weight: 500;
+      margin-bottom: 8px;
+      display: block;
+    }
+
+    input[type="text"],
+    textarea {
+      width: 100%;
+      padding: 12px;
+      font-size: 16px;
+      border-radius: 10px;
+      border: 1px solid #ccc;
+      background: #f8f9fa;
+    }
+
+    textarea {
+      min-height: 200px;
+      resize: vertical;
+    }
+
+    .btn-modern, .btn-submit {
+      background: #4CAF50;
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      padding: 10px 20px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.2s ease-in-out;
+    }
+
+    .btn-modern:hover, .btn-submit:hover {
+      background: #45a049;
+    }
+  </style>
 </head>
 <body>
-  <h4 class="container mt-4"><strong>글 작성페이지</strong></h4>
+  <div class="board-container">
+    <h2 class="board-title">📝 게시물 작성</h2>
 
-  <div class="container mt-3">
-    <form action="/add" method="POST">
+    <form id="postForm">
       <div class="form-group">
-        <label>오늘의 할일</label>
-        <input type="text" class="form-control" name="title">
+        <label for="title">제목</label>
+        <input type="text" id="title" name="title" required>
       </div>
+
       <div class="form-group">
-        <label>날짜</label>
-        <input type="text" class="form-control" name="date">
+        <label for="content">내용</label>
+        <textarea id="content" name="content" required></textarea>
       </div>
-      <button type="submit" class="btn btn-outline-secondary">Submit</button>
+
+      <div class="d-flex justify-content-end">
+        <button type="submit" class="btn-submit">작성 완료</button>
+      </div>
     </form>
   </div>
 
+  <script>
+    document.getElementById('postForm').addEventListener('submit', function (event) {
+      event.preventDefault();
 
-  <script src="https://code.jquery.com/jquery-3.4.1.slim.min.js" integrity="sha384-J6qa4849blE2+poT4WnyKhv5vZF5SrPo0iEjwBvKU7imGFAV0wwj1yYfoRSJoZ+n" crossorigin="anonymous"></script>
-  <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js" integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous"></script>
-  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js" integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6" crossorigin="anonymous"></script>
+      const title = document.getElementById('title').value;
+      const content = document.getElementById('content').value;
+
+      const postData = { title, content };
+
+      fetch('/add', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(postData)
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          console.log('게시물이 작성되었습니다.');
+          window.location.href = data.redirect;
+        } else {
+          console.log('게시물 작성에 실패했습니다.');
+        }
+      })
+      .catch(error => console.log('오류 발생:', error));
+    });
+  </script>
 </body>
 </html>
