@@ -23,4 +23,4 @@
 - **EJS**: HTML 페이지를 렌더링하기 위한 임베디드 JavaScript 템플릿.
 
 ## 서버는 다음 도메인에서 실행중입니다.
-**http://jangdonggun.iptime.org:3000**
+[접속하기](http://jangdonggun.iptime.org:3000)
