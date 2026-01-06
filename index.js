@@ -24,7 +24,7 @@ app.use(flash());
 
 // ========== 세션 설정 ==========
 app.use(session({
-  secret: '비밀코드',
+  secret: process.env.SESSION_SECRET || 'change-this-secret-key-in-production',
   resave: true,
   saveUninitialized: false
 }));
@@ -57,14 +57,14 @@ MongoClient.connect(process.env.DB_URL, { useUnifiedTopology: true }, (err, clie
   db = client.db('server');
   console.log('MongoDB Connected');
 });
-// ===== 이메일 전송 설정 (Gmail 예시) =====
+// ===== 이메일 전송 설정 =====
 const transporter = nodemailer.createTransport({
-  host: 'smtp.naver.com',
-  port: 465,
+  host: process.env.EMAIL_HOST || 'smtp.naver.com',
+  port: parseInt(process.env.EMAIL_PORT) || 465,
   secure: true,
   auth: {
-    user: 'jdajsl0415@naver.com',
-    pass: 'JHY7Y8UYPLY4'   // 네이버 애플리케이션 비밀번호
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS
   }
 });
 // ========== Passport LocalStrategy (Debug Logging Added) ==========
@@ -74,62 +74,62 @@ passport.use(new LocalStrategy({
   session: true
 }, (id, pw, done) => {
 
-  console.log("🔍 [DEBUG] LocalStrategy 호출됨");
-  console.log("🔍 입력받은 ID:", id);
-  console.log("🔍 입력받은 PW:", pw);
+  console.log(" [DEBUG] LocalStrategy 호출됨");
+  console.log(" 입력받은 ID:", id);
+  console.log(" 입력받은 PW:", pw);
 
   db.collection('login').findOne({ id }, async (err, user) => {
 
-    console.log("📌 [DEBUG] DB에서 조회 시도: id =", id);
+    console.log(" [DEBUG] DB에서 조회 시도: id =", id);
 
     if (err) {
-      console.log("❌ [DEBUG] DB 조회 중 오류 발생:", err);
+      console.log(" [DEBUG] DB 조회 중 오류 발생:", err);
       return done(err);
     }
 
     if (!user) {
-      console.log("❌ [DEBUG] 아이디 없음:", id);
+      console.log(" [DEBUG] 아이디 없음:", id);
       return done(null, false, { message: '존재하지 않는 아이디입니다.' });
     }
 
-    console.log("✅ [DEBUG] DB 조회 성공, user:", user);
+    console.log("[DEBUG] DB 조회 성공, user:", user);
 
     // 비밀번호 비교
     try {
       const match = await bcrypt.compare(pw, user.pw);
-      console.log("🔍 [DEBUG] 비밀번호 비교 결과:", match);
+      console.log("[DEBUG] 비밀번호 비교 결과:", match);
 
       if (match) {
-        console.log("✅ [DEBUG] 로그인 성공:", user.id);
+        console.log("[DEBUG] 로그인 성공:", user.id);
         return done(null, user);
       } else {
-        console.log("❌ [DEBUG] 비밀번호 불일치");
+        console.log("[DEBUG] 비밀번호 불일치");
         return done(null, false, { message: '비밀번호가 일치하지 않습니다.' });
       }
     } catch (error) {
-      console.log("❌ [DEBUG] 비밀번호 비교 중 오류:", error);
+      console.log("[DEBUG] 비밀번호 비교 중 오류:", error);
       return done(error);
     }
   });
 }));
 // ========== serializeUser ==========
 passport.serializeUser((user, done) => {
-  console.log("🧩 [DEBUG] serializeUser 실행됨");
-  console.log("🧩 저장할 user.id:", user.id);
+  console.log("[DEBUG] serializeUser 실행됨");
+  console.log("저장할 user.id:", user.id);
   done(null, user.id);
 });
 
 
 // ========== deserializeUser ==========
 passport.deserializeUser((id, done) => {
-  console.log("🧩 [DEBUG] deserializeUser 실행됨 - 찾는 ID:", id);
+  console.log("[DEBUG] deserializeUser 실행됨 - 찾는 ID:", id);
 
   db.collection('login').findOne({ id }, (err, user) => {
     if (err) {
-      console.log("❌ [DEBUG] deserializeUser DB 에러:", err);
+      console.log("[DEBUG] deserializeUser DB 에러:", err);
       return done(err);
     }
-    console.log("🔍 [DEBUG] deserializeUser 조회된 user:", user);
+    console.log("[DEBUG] deserializeUser 조회된 user:", user);
     done(err, user);
   });
 })
@@ -153,7 +153,7 @@ app.post('/reset-password', async (req, res) => {
 
   try {
     await transporter.sendMail({
-      from: 'jdajsl0415@naver.com', // 네이버 메일 그대로 사용
+      from: process.env.EMAIL_USER,
       to: email,
       subject: '비밀번호 재설정 인증 코드',
       text: `인증 코드: ${code}`
@@ -371,7 +371,7 @@ app.post('/comment/add', async (req, res) => {
     }
 
     const writer = req.session.user.nm;
-    const writer_id = req.session.user.id;   // ✅ 오타 수정
+    const writer_id = req.session.user.id;  
 
     console.log('writer:', writer, ' writer_id:', writer_id);
 
@@ -504,19 +504,19 @@ app.post('/upload', 로그인, upload.array('uploading', 10), (req, res) => res.
 // ========== Socket.io ==========
 app.get('/socket', 로그인, (req, res) => res.render('socket.ejs'));
 io.on('connection', (socket) => {
-  console.log('🟢 유저 접속');
+  console.log('유저 접속');
 
-  // ✅ 특정 방에 들어가기
+  // 특정 방에 들어가기
   socket.on('joinroom', () => {
     socket.join('room1');
   });
 
-  // ✅ 같은 방의 다른 사람에게만 메시지 전송 (본인 제외)
+  // 같은 방의 다른 사람에게만 메시지 전송 (본인 제외)
   socket.on('room1-send', (data) => {
     socket.broadcast.to('room1').emit('broadcast', data);
   });
 
-  // ✅ 모든 사람에게 메시지 전송 (본인 제외)
+  // 모든 사람에게 메시지 전송 (본인 제외)
   socket.on('user-send', (data) => {
     socket.broadcast.emit('broadcast', data);
   });

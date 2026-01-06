@@ -1,1 +1,92 @@
+# Dependencies
+node_modules/
+yarn.lock
+package-lock.json
+
+# Environment variables
 .env
+.env.local
+.env.*
+!.env.example
+!.env.template
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# IDE
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# ============================================
+# 보안 관련 파일 (절대 업로드 금지)
+# ============================================
+
+# Docker 설정 파일 (포트, 비밀번호 등 포함)
+docker-compose.yml
+docker-compose.*.yml
+!docker-compose.example.yml
+
+# PM2 설정 파일 (포트, 메모리 설정 등)
+ecosystem.config.js
+pm2.config.js
+
+# Nginx 설정 파일 (서버 경로 포함)
+nginx.conf
+nginx.conf.example
+*.conf
+!nginx.conf.example.template
+
+# Webhook 관련 파일 (시크릿, 서버 정보 포함)
+webhook-server.js
+webhook-setup.sh
+*webhook*.js
+*webhook*.sh
+
+# Secrets 파일
+*SECRETS*.txt
+*secrets*.txt
+*SECRET*.txt
+GITHUB_SECRETS*.txt
+
+# SSH 키 파일
+*.pem
+*.key
+id_rsa
+id_rsa.pub
+id_ed25519
+id_ed25519.pub
+*.ppk
+
+# 인증서 파일
+*.crt
+*.cer
+*.cert
+*.p12
+*.pfx
+
+# 업로드된 파일
+public/image/*
+!public/image/.gitkeep
+
+# 데이터베이스 백업
+*.sql
+*.dump
+*.backup
+
+# 임시 파일
+tmp/
+temp/
+*.tmp
