@@ -22,8 +22,8 @@
     "mongoose": "^7.1.0",
     "multer": "^1.4.5-lts.1",
     "node.js": "^0.0.1-security",
-    "nodemailer": "^6.10.1",
-    "nodemon": "^2.0.22",
+    "nodemailer": "^7.0.12",
+    "nodemon": "^3.1.11",
     "passport": "^0.6.0",
     "passport-local": "^1.0.0",
     "socket.io": "^4.6.1"
